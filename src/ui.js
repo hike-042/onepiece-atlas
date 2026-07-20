@@ -44,7 +44,8 @@ export function renderPanel({ panel, panelInner, loc, onLinkClick, onCharacterCl
       const match = findCharacterByName(c.name);
       const cls = match ? 'charchip clickable' : 'charchip';
       const attr = match ? ` data-charid="${match.id}"` : '';
-      return `<span class="${cls}"${attr}><b>${c.name}</b>: ${c.role}</span>`;
+      const fruitTag = match?.devilFruit ? ` <span title="Devil Fruit: ${match.devilFruit.name}">🍈</span>` : '';
+      return `<span class="${cls}"${attr}><b>${c.name}</b>${fruitTag}: ${c.role}</span>`;
     }).join('');
 
   const linkHtml = (loc.links || [])

@@ -51,6 +51,7 @@ const sagaChipsContainer = document.getElementById('sagaChips');
 const charModal = document.getElementById('charModal');
 const charModalTitle = document.getElementById('charModalTitle');
 const charModalSubtitle = document.getElementById('charModalSubtitle');
+const charFruitEffect = document.getElementById('charFruitEffect');
 const charCrewBar = document.getElementById('charCrewBar');
 const charOrgBar = document.getElementById('charOrgBar');
 const charBladeBar = document.getElementById('charBladeBar');
@@ -164,6 +165,7 @@ function openCharModal(charId){
   if (character.epithet) bits.push(`"${character.epithet}"`);
   if (character.devilFruit) bits.push(`Devil Fruit: ${character.devilFruit.name} (${character.devilFruit.type})`);
   charModalSubtitle.textContent = bits.join('  ·  ');
+  charFruitEffect.textContent = character.devilFruit ? `🍈 ${character.devilFruit.effect}` : '';
 
   if (character.bounty){
     charDossierAmount.textContent = character.bounty;
@@ -235,6 +237,7 @@ function openCrewModal(crewId){
   charModalInner.classList.remove('memorial');
   charBladeBar.innerHTML = '';
   charCrossRef.innerHTML = '';
+  charFruitEffect.textContent = '';
   mountGraph(openCrewGraph, crewId, (nextCharId) => openCharModal(nextCharId));
   if (crew){
     charModalTitle.textContent = crew.name;
@@ -255,6 +258,7 @@ function openOrgModal(orgId){
   charModalInner.classList.remove('memorial');
   charBladeBar.innerHTML = '';
   charCrossRef.innerHTML = '';
+  charFruitEffect.textContent = '';
   mountGraph(openOrganizationGraph, orgId, (nextCharId) => openCharModal(nextCharId));
   if (org){
     charModalTitle.textContent = org.name;

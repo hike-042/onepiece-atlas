@@ -149,12 +149,40 @@ function buildCloudDais(){
   return group;
 }
 
+function buildGlassDome(){
+  // A generic bubble-habitat shape (a glass dome ringed by coral spires) for
+  // an undersea settlement — an original silhouette, not a reproduction of
+  // any specific location's actual copyrighted architecture.
+  const group = new THREE.Group();
+  const glass = new THREE.MeshStandardMaterial({ color: 0x8ecbc4, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.55 });
+  const coral = new THREE.MeshStandardMaterial({ color: 0xC1502E, roughness: 0.8 });
+
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.3, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), glass);
+  group.add(dome);
+
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.018, 8, 24), coral);
+  ring.rotation.x = Math.PI / 2;
+  group.add(ring);
+
+  const spireGeo = new THREE.CylinderGeometry(0.02, 0.03, 0.16, 6);
+  const spirePositions = [[0.09, 0.08, 0.05], [-0.11, 0.07, -0.06], [0.02, 0.09, -0.13]];
+  spirePositions.forEach(([x, y, z]) => {
+    const spire = new THREE.Mesh(spireGeo, coral);
+    spire.position.set(x, y, z);
+    group.add(spire);
+  });
+
+  group.scale.setScalar(1.3);
+  return group;
+}
+
 export const LANDMARK_BUILDERS = {
   elephant: buildElephant,
   tieredCake: buildTieredCake,
   shipFuneral: buildShipFuneral,
   toriiGate: buildToriiGate,
   cloudDais: buildCloudDais,
+  glassDome: buildGlassDome,
 };
 
 /** Attaches any registered landmark models to the globe for locations
