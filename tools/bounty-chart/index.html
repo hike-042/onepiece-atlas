@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bounty Chart | The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E8DCC0; --ink:#1B2A41; --brass-bright:#C99A3A; --teal:#1F5C56;
+    --rust:#8C3B26; --void:#0b1622; --void-deep:#050a11;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  .tool-nav{ display:flex; gap:8px; flex-wrap:wrap; padding:9px 28px; background:#D8C9A3;
+    border-bottom:2px solid var(--ink); font-family:'JetBrains Mono', monospace; font-size:11px; }
+  .tool-nav a{ padding:5px 11px; border:1.5px solid var(--ink); border-radius:999px; color:#33455e;
+    text-decoration:none; background:rgba(251,246,234,0.55); }
+  .tool-nav a:hover{ background:#fbf6ea; }
+  body{ background:var(--void); color:var(--parchment); font-family:'Crimson Text', serif; }
+  header{ padding:16px 28px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  h1{ font-family:'Pirata One', cursive; font-size:26px; margin:0; }
+  .tagline{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#33455e; margin:0; }
+  a.back{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--rust); text-decoration:none; }
+  a.back:hover{ text-decoration:underline; }
+
+  main{ max-width:1000px; margin:0 auto; padding:28px 24px 60px; }
+  section{ margin-bottom:44px; }
+  h2{ font-family:'Pirata One', cursive; font-size:22px; color:var(--brass-bright); margin:0 0 4px; }
+  .note{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#9fb0bd; margin:0 0 18px; line-height:1.6; }
+
+  #luffyChart{ width:100%; height:auto; }
+  #luffyChart .axis-line{ stroke:rgba(232,220,192,0.2); stroke-width:1; }
+  #luffyChart .growth-path{ fill:none; stroke:var(--brass-bright); stroke-width:2.5; }
+  #luffyChart circle{ fill:var(--rust); stroke:var(--brass-bright); stroke-width:1.5; }
+  #luffyChart text{ font-family:'JetBrains Mono', monospace; fill:var(--parchment); }
+  #luffyChart .val{ font-size:12px; fill:var(--brass-bright); font-weight:600; }
+  #luffyChart .saga{ font-size:9.5px; fill:#9fb0bd; }
+
+  .rankbar-row{ display:flex; align-items:center; gap:10px; padding:4px 0; }
+  .rankbar-name{ width:220px; flex-shrink:0; font-size:14px; text-align:right; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; }
+  .rankbar-track{ flex:1; background:rgba(232,220,192,0.06); border-radius:3px; height:16px; position:relative; }
+  .rankbar-fill{ background:linear-gradient(to right, var(--teal), var(--brass-bright)); height:100%;
+    border-radius:3px; min-width:2px; }
+  .rankbar-value{ width:120px; flex-shrink:0; font-family:'JetBrains Mono', monospace; font-size:11px; color:#9fb0bd; }
+  #rankList{ max-height:640px; overflow-y:auto; padding-right:6px; }
+  .rankbar-row.highlight .rankbar-name{ color:var(--brass-bright); font-weight:600; }
+  .rankbar-row.highlight .rankbar-fill{ box-shadow:0 0 8px var(--brass-bright); }
+  .ambient-backdrop{ position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<canvas class="ambient-backdrop" id="ambientBackdrop"></canvas>
+
+<header>
+  <div>
+    <h1>Bounty Chart</h1>
+    <p class="tagline">Power escalation across the story, in berries</p>
+  </div>
+  <a class="back" href="../../">← back to the atlas</a>
+</header>
+<nav class="tool-nav">
+  <a href="../../">🧭 Atlas</a>
+  <a href="../story-graph/">🌐 Story Graph</a>
+  <a href="../time-travel/">⏳ Time Travel</a>
+  <a href="../route-animation/">⛵ Route Animation</a>
+  <a href="../qa/">❓ Ask the Atlas</a>
+  <a href="../bounties/">💵 Bounty Board</a>
+  <a href="../devil-fruits/">🍈 Devil Fruits</a>
+  <a href="../origins/">🌳 Origin Tree</a>
+  <a href="../family-tree/">🧬 Family Tree</a>
+  <a href="../flat-map/">🗺 Flat Map</a>
+  <a href="../mural-theories/">📜 Mural Theories</a>
+</nav>
+
+<main>
+  <section>
+    <h2>Luffy's bounty, saga by saga</h2>
+    <p class="note">The only fully-sourced multi-point history in this dataset, every figure below is a
+      well-documented published number, not an estimate. See <code>src/data/bountyHistory.js</code>.</p>
+    <svg id="luffyChart" viewBox="0 0 900 300"></svg>
+  </section>
+
+  <section>
+    <h2>Every bounty on record, ranked</h2>
+    <p class="note">Current-snapshot bounties already stored per character, not a growth history,
+      just where everyone stands right now.</p>
+    <div id="rankList"></div>
+  </section>
+</main>
+
+<script type="module">
+import { CHARACTERS } from '../../src/data/characters/index.js';
+import { BOUNTY_HISTORY } from '../../src/data/bountyHistory.js';
+import { startAmbientBackdrop } from '../../src/scene/ambientBackdrop.js';
+
+startAmbientBackdrop(document.getElementById('ambientBackdrop'));
+
+function formatBerries(n){
+  if (n >= 1e9) return `${(n / 1e9).toFixed(n % 1e9 === 0 ? 0 : 2)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+  return `${n}`;
+}
+
+function parseBounty(str){
+  if (!str) return null;
+  const m = str.match(/([\d,]+)\s*berries/);
+  if (!m) return null;
+  return parseInt(m[1].replace(/,/g, ''), 10);
+}
+
+// --- Luffy's growth line chart ---
+const luffy = BOUNTY_HISTORY.find(b => b.characterId === 'luffy');
+if (luffy){
+  const points = luffy.points;
+  const W = 900, H = 300, padX = 60, padY = 40;
+  const maxVal = Math.max(...points.map(p => p.bounty));
+  const xStep = (W - padX * 2) / (points.length - 1);
+  const coords = points.map((p, i) => ({
+    x: padX + i * xStep,
+    y: H - padY - (p.bounty / maxVal) * (H - padY * 2),
+    ...p,
+  }));
+  const pathD = coords.map((c, i) => (i === 0 ? 'M' : 'L') + c.x.toFixed(1) + ',' + c.y.toFixed(1)).join(' ');
+
+  const svg = document.getElementById('luffyChart');
+  svg.innerHTML = `
+    <line class="axis-line" x1="${padX}" y1="${H - padY}" x2="${W - padX}" y2="${H - padY}"></line>
+    <path class="growth-path" d="${pathD}"></path>
+    ${coords.map(c => `
+      <circle cx="${c.x}" cy="${c.y}" r="5"></circle>
+      <text class="val" x="${c.x}" y="${c.y - 12}" text-anchor="middle">${formatBerries(c.bounty)}</text>
+      <text class="saga" x="${c.x}" y="${H - padY + 18}" text-anchor="middle">${c.saga.replace(' Saga', '')}</text>
+    `).join('')}
+  `;
+}
+
+// --- full ranked bar chart from existing per-character bounty snapshots ---
+const ranked = CHARACTERS
+  .map(c => ({ id: c.id, name: c.name, value: parseBounty(c.bounty) }))
+  .filter(c => c.value)
+  .sort((a, b) => b.value - a.value);
+
+const maxRanked = ranked.length ? ranked[0].value : 1;
+document.getElementById('rankList').innerHTML = ranked.map(c => `
+  <div class="rankbar-row" data-charid="${c.id}">
+    <div class="rankbar-name">${c.name}</div>
+    <div class="rankbar-track"><div class="rankbar-fill" style="width:${Math.max(1, (c.value / maxRanked) * 100)}%"></div></div>
+    <div class="rankbar-value">${formatBerries(c.value)}</div>
+  </div>
+`).join('');
+
+// Deep link from the main atlas's character dossier: ?char=<id> scrolls to
+// and highlights that character's row in the ranked list below.
+const deepLinkId = new URLSearchParams(location.search).get('char');
+if (deepLinkId){
+  const row = document.querySelector(`.rankbar-row[data-charid="${deepLinkId}"]`);
+  if (row){
+    row.classList.add('highlight');
+    row.scrollIntoView({ block: 'center' });
+  }
+}
+</script>
+</body>
+</html>

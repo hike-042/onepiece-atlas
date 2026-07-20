@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flat Map | The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../src/styles/main.css">
+<style>
+  :root{
+    --parchment:#E8DCC0; --ink:#1B2A41; --ink-soft:#33455e;
+    --brass-bright:#C99A3A; --teal:#1F5C56; --rust:#8C3B26; --void:#0b1622;
+  }
+  html,body{ margin:0; padding:0; height:100%; background:var(--void); overflow:hidden; }
+  body{ display:flex; flex-direction:column; }
+  header{ padding:14px 24px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px; position:relative; z-index:6; }
+  header h1{ font-family:'Pirata One', cursive; font-size:24px; margin:0; }
+  header .tagline{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:#33455e; margin:0; }
+  a.back{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--rust); text-decoration:none; }
+  a.back:hover{ text-decoration:underline; }
+  .tool-nav{ display:flex; gap:8px; flex-wrap:wrap; padding:9px 24px; background:#D8C9A3;
+    border-bottom:2px solid var(--ink); font-family:'JetBrains Mono', monospace; font-size:11px; position:relative; z-index:6; }
+  .tool-nav a{ padding:5px 11px; border:1.5px solid var(--ink); border-radius:999px; color:#33455e;
+    text-decoration:none; background:rgba(251,246,234,0.55); }
+  .tool-nav a:hover{ background:#fbf6ea; }
+
+  #stage{ position:relative; width:100%; flex:1; overflow:hidden; }
+  #mapCanvas{ position:absolute; inset:0; width:100%; height:100%; cursor:grab; }
+  #mapCanvas.dragging{ cursor:grabbing; }
+
+  .toolbar{ position:absolute; top:14px; left:14px; z-index:4; display:flex; gap:8px; flex-wrap:wrap; max-width:calc(100% - 28px); align-items:center; }
+  .toolbar input{ font-family:'Crimson Text', serif; font-size:14px; padding:7px 12px; border-radius:6px;
+    border:1.5px solid rgba(232,220,192,0.35); background:rgba(11,22,34,0.85); color:var(--parchment); min-width:200px; }
+  .toolbar input::placeholder{ color:#5c6f7d; }
+  .toolbar .chip{ font-family:'JetBrains Mono', monospace; font-size:10.5px; padding:6px 11px; border-radius:14px;
+    border:1.5px solid rgba(232,220,192,0.3); background:rgba(11,22,34,0.75); color:#c9d3da; cursor:pointer; }
+  .toolbar .chip.active{ background:var(--brass-bright); color:var(--ink); border-color:var(--brass-bright); }
+
+  .zoomctl{ position:absolute; bottom:14px; left:14px; z-index:4; display:flex; flex-direction:column; gap:6px; }
+  .zoomctl button{ width:32px; height:32px; border-radius:6px; border:1.5px solid rgba(232,220,192,0.35);
+    background:rgba(11,22,34,0.85); color:var(--parchment); font-size:16px; cursor:pointer; }
+  .zoomctl button:hover{ background:rgba(201,154,58,0.3); }
+
+  #legend{ position:absolute; bottom:14px; right:14px; z-index:4; background:rgba(11,22,34,0.9);
+    border:1.5px solid var(--brass-bright); border-radius:8px; padding:10px 13px; font-size:11.5px; color:#c9d3da; }
+  #legend h3{ font-family:'Pirata One', cursive; font-size:13px; margin:0 0 6px; color:var(--brass-bright); }
+  .legrow{ display:flex; align-items:center; gap:7px; padding:2px 0; }
+  .legdot{ width:9px; height:9px; border-radius:50%; flex:none; }
+
+  #tooltip{ position:absolute; z-index:5; pointer-events:none; display:none; font-family:'Crimson Text', serif;
+    font-size:13px; background:var(--parchment); color:var(--ink); padding:4px 10px; border-radius:4px;
+    border:1px solid var(--ink); transform:translate(-50%,-135%); white-space:nowrap; }
+
+  .panel{ z-index:7; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Flat Map</h1>
+    <p class="tagline">The same atlas, laid flat, click an island to open its log</p>
+  </div>
+  <a class="back" href="../../">← back to the globe</a>
+</header>
+<nav class="tool-nav">
+  <a href="../../">🧭 Atlas</a>
+  <a href="../story-graph/">🌐 Story Graph</a>
+  <a href="../time-travel/">⏳ Time Travel</a>
+  <a href="../bounty-chart/">💰 Bounty Chart</a>
+  <a href="../route-animation/">⛵ Route Animation</a>
+  <a href="../qa/">❓ Ask the Atlas</a>
+  <a href="../bounties/">💵 Bounty Board</a>
+  <a href="../devil-fruits/">🍈 Devil Fruits</a>
+  <a href="../origins/">🌳 Origin Tree</a>
+  <a href="../family-tree/">🧬 Family Tree</a>
+  <a href="../mural-theories/">📜 Mural Theories</a>
+</nav>
+
+<div id="stage">
+  <canvas id="mapCanvas"></canvas>
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Search an island, saga, or character…" autocomplete="off">
+    <div id="sagaChips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+  </div>
+  <div class="zoomctl">
+    <button id="zoomIn" aria-label="Zoom in">+</button>
+    <button id="zoomOut" aria-label="Zoom out">−</button>
+    <button id="zoomReset" aria-label="Reset view">⟲</button>
+  </div>
+  <div id="legend"></div>
+  <div id="tooltip"></div>
+  <div class="panel" id="panel"><div class="panel-inner" id="panelInner"></div></div>
+</div>
+
+<script type="module">
+import { LOCATIONS } from '../../src/data/locations.js';
+import { findCharacterById } from '../../src/data/characters/index.js';
+import { renderSagaChips, setupSearch, renderPanel } from '../../src/ui.js';
+
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+const stage = document.getElementById('stage');
+const tooltip = document.getElementById('tooltip');
+const panel = document.getElementById('panel');
+const panelInner = document.getElementById('panelInner');
+
+const SEA_COLOR = {
+  'East Blue': '#33455e', 'Paradise': '#1F5C56', 'New World': '#8C3B26',
+  'Sky': '#7B5EA7', 'Undersea': '#26496b', 'Unknown': '#5c6f7d',
+  'Grand Line Gate': '#C99A3A', 'Holy Land': '#a67c27', 'Open Sea': '#4C8C86',
+};
+
+const legend = document.getElementById('legend');
+legend.innerHTML = `<h3>Sea</h3>` + Object.entries(SEA_COLOR).map(([sea, color]) =>
+  `<div class="legrow"><span class="legdot" style="background:${color}"></span>${sea}</div>`
+).join('');
+
+// --- projection: simple equirectangular, lon 0-360, lat -90..90 ---
+const WORLD_W = 1600, WORLD_H = 620; // internal "world units" the chart is drawn in
+function project(lat, lon){
+  const x = (((lon % 360) + 360) % 360) / 360 * WORLD_W;
+  const y = (90 - lat) / 180 * WORLD_H * 0.5 + WORLD_H * 0.25; // compress toward the equatorial band, where almost every island sits
+  return { x, y };
+}
+
+let dpr = Math.min(window.devicePixelRatio || 1, 2);
+// view.scale/offsetX/offsetY map WORLD units -> CSS-pixel canvas coordinates.
+// DPR is applied on top of that in the render transform, so mouse math never
+// needs to know about it.
+let view = { scale: 1, offsetX: 0, offsetY: 0 };
+function resetView(){
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  view.scale = Math.min(w / WORLD_W, h / WORLD_H) * 0.94;
+  view.offsetX = (w - WORLD_W * view.scale) / 2;
+  view.offsetY = (h - WORLD_H * view.scale) / 2;
+}
+function resize(){
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(canvas.clientWidth * dpr);
+  canvas.height = Math.round(canvas.clientHeight * dpr);
+}
+window.addEventListener('resize', () => { resize(); draw(); });
+resize();
+resetView();
+
+function screenToWorld(x, y){
+  return { x: (x - view.offsetX) / view.scale, y: (y - view.offsetY) / view.scale };
+}
+function clampView(){
+  const minScale = Math.min(canvas.clientWidth / WORLD_W, canvas.clientHeight / WORLD_H) * 0.6;
+  view.scale = Math.max(minScale, Math.min(4, view.scale));
+}
+
+// --- filter state (mirrors the main atlas) ---
+let activeSaga = 'all';
+let searchTerm = '';
+let selectedId = null;
+
+function isVisible(loc){
+  const sagaOk = activeSaga === 'all' || loc.saga === activeSaga;
+  const term = searchTerm.trim().toLowerCase();
+  const haystack = [loc.name, loc.saga, loc.sea, ...(loc.characters || []).map(c => c.name)].join(' ').toLowerCase();
+  return sagaOk && (!term || haystack.includes(term));
+}
+
+renderSagaChips(document.getElementById('sagaChips'), (saga) => { activeSaga = saga; draw(); });
+setupSearch(document.getElementById('search'), (term) => { searchTerm = term; draw(); });
+
+// --- drawing: an original, hand-drawn nautical-chart look, no traced art ---
+let phase = 0;
+function drawChart(){
+  const w = WORLD_W, h = WORLD_H;
+  ctx.fillStyle = '#0f2436';
+  ctx.fillRect(0, 0, w, h);
+
+  // faint lon/lat grid
+  ctx.strokeStyle = 'rgba(232,220,192,0.06)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= w; x += w / 12){ ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+  for (let y = 0; y <= h; y += h / 8){ ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+
+  // gentle animated wave lines across the whole ocean
+  ctx.strokeStyle = 'rgba(232,220,192,0.05)';
+  ctx.lineWidth = 1.4;
+  for (let row = 0; row < 14; row++){
+    const y = (row + 0.5) * (h / 14);
+    ctx.beginPath();
+    for (let x = 0; x <= w; x += 8){
+      const yy = y + Math.sin(x * 0.02 + phase + row) * 2.4;
+      if (x === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+  }
+
+  // the Grand Line: a highlighted equatorial band
+  const glTop = h * 0.42, glBottom = h * 0.58;
+  const glGrad = ctx.createLinearGradient(0, glTop, 0, glBottom);
+  glGrad.addColorStop(0, 'rgba(201,154,58,0)');
+  glGrad.addColorStop(0.5, 'rgba(201,154,58,0.09)');
+  glGrad.addColorStop(1, 'rgba(201,154,58,0)');
+  ctx.fillStyle = glGrad;
+  ctx.fillRect(0, glTop, w, glBottom - glTop);
+
+  // the Red Line: two vertical crossings (Reverse Mountain gate, and the Marineford crossing)
+  [w * 0.5, 0, w].forEach(x => {
+    const rlGrad = ctx.createLinearGradient(x - 10, 0, x + 10, 0);
+    rlGrad.addColorStop(0, 'rgba(140,59,38,0)');
+    rlGrad.addColorStop(0.5, 'rgba(140,59,38,0.55)');
+    rlGrad.addColorStop(1, 'rgba(140,59,38,0)');
+    ctx.fillStyle = rlGrad;
+    ctx.fillRect(x - 10, 0, 20, h);
+  });
+
+  // decorative compass rose, original geometry
+  const cx = w * 0.5, cy = h * 0.08, r = 22;
+  ctx.strokeStyle = 'rgba(232,220,192,0.35)'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r);
+  ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(232,220,192,0.5)';
+  ctx.font = '9px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('N', cx, cy - r - 5);
+}
+
+// Marker radius shrinks/grows a little with zoom, but stays legible at
+// both extremes — drawn directly in world units since the render
+// transform (see draw()) already accounts for pan/zoom/DPR.
+function markerRadius(loc){
+  const base = loc.status === 'current' ? 7 : loc.id === selectedId ? 6.5 : 4.5;
+  return base / Math.min(1.6, Math.max(0.7, view.scale));
+}
+
+function drawMarkers(){
+  LOCATIONS.forEach(loc => {
+    const p = project(loc.lat, loc.lon);
+    const visible = isVisible(loc);
+    const isCurrent = loc.status === 'current';
+    const isUpcoming = loc.status === 'upcoming';
+    const color = SEA_COLOR[loc.sea] || '#8a97a6';
+    const r = markerRadius(loc);
+
+    ctx.globalAlpha = visible ? 1 : 0.18;
+    if (isUpcoming){
+      ctx.strokeStyle = color; ctx.lineWidth = 1.6 / view.scale; ctx.setLineDash([3 / view.scale, 2 / view.scale]);
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+    } else {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+      if (isCurrent || loc.id === selectedId){
+        ctx.strokeStyle = 'rgba(232,220,192,0.9)'; ctx.lineWidth = 1.6 / view.scale;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r + 3, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    if (isCurrent){
+      // small original ship glyph beside the current location
+      ctx.save();
+      ctx.translate(p.x + r + 10 / view.scale, p.y);
+      ctx.scale(1 / view.scale, 1 / view.scale);
+      ctx.fillStyle = 'rgba(232,220,192,0.85)';
+      ctx.beginPath();
+      ctx.moveTo(-6, 3); ctx.lineTo(6, 3); ctx.lineTo(4, 6); ctx.lineTo(-4, 6); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(0, 3); ctx.lineTo(0, -6); ctx.lineTo(4.5, 0); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+
+    if (view.scale > 0.55 && (visible || loc.id === selectedId)){
+      ctx.fillStyle = visible ? 'rgba(232,220,192,0.85)' : 'rgba(232,220,192,0.3)';
+      ctx.font = `${11 / view.scale}px "Crimson Text", serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(loc.name, p.x + r + 5 / view.scale, p.y + 4 / view.scale);
+    }
+  });
+}
+
+function draw(){
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+  ctx.setTransform(view.scale * dpr, 0, 0, view.scale * dpr, view.offsetX * dpr, view.offsetY * dpr);
+  drawChart();
+  drawMarkers();
+}
+
+function findLocationAt(worldX, worldY){
+  let closest = null, closestDist = Infinity;
+  LOCATIONS.forEach(loc => {
+    const p = project(loc.lat, loc.lon);
+    const d = Math.hypot(p.x - worldX, p.y - worldY);
+    const hitR = markerRadius(loc) + 4 / view.scale;
+    if (d <= hitR && d < closestDist){ closest = loc; closestDist = d; }
+  });
+  return closest;
+}
+
+// --- pan, zoom, hover, click ---
+let dragging = false, lastX = 0, lastY = 0, moved = false;
+canvas.addEventListener('mousedown', e => {
+  dragging = true; moved = false; lastX = e.clientX; lastY = e.clientY;
+  canvas.classList.add('dragging');
+});
+window.addEventListener('mouseup', () => { dragging = false; canvas.classList.remove('dragging'); });
+window.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  if (dragging){
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+    view.offsetX += dx; view.offsetY += dy;
+    lastX = e.clientX; lastY = e.clientY;
+    draw();
+    tooltip.style.display = 'none';
+    return;
+  }
+  const world = screenToWorld(mx, my);
+  const hit = findLocationAt(world.x, world.y);
+  if (hit){
+    tooltip.style.display = 'block';
+    tooltip.style.left = mx + 'px';
+    tooltip.style.top = my + 'px';
+    tooltip.textContent = hit.name;
+    canvas.style.cursor = 'pointer';
+  } else {
+    tooltip.style.display = 'none';
+    canvas.style.cursor = dragging ? 'grabbing' : 'grab';
+  }
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const before = screenToWorld(mx, my);
+  view.scale *= e.deltaY < 0 ? 1.15 : 1 / 1.15;
+  clampView();
+  const after = screenToWorld(mx, my);
+  view.offsetX += (after.x - before.x) * view.scale;
+  view.offsetY += (after.y - before.y) * view.scale;
+  draw();
+}, { passive: false });
+canvas.addEventListener('click', e => {
+  if (moved) return;
+  const rect = canvas.getBoundingClientRect();
+  const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+  const hit = findLocationAt(world.x, world.y);
+  if (hit) selectLocation(hit.id);
+});
+function zoomBy(factor, cx, cy){
+  const before = screenToWorld(cx, cy);
+  view.scale *= factor;
+  clampView();
+  const after = screenToWorld(cx, cy);
+  view.offsetX += (after.x - before.x) * view.scale;
+  view.offsetY += (after.y - before.y) * view.scale;
+  draw();
+}
+document.getElementById('zoomIn').addEventListener('click', () => zoomBy(1.25, canvas.clientWidth / 2, canvas.clientHeight / 2));
+document.getElementById('zoomOut').addEventListener('click', () => zoomBy(1 / 1.25, canvas.clientWidth / 2, canvas.clientHeight / 2));
+document.getElementById('zoomReset').addEventListener('click', () => { resetView(); draw(); });
+
+function selectLocation(id){
+  const loc = LOCATIONS.find(l => l.id === id);
+  if (!loc) return;
+  selectedId = id;
+  renderPanel({
+    panel, panelInner, loc,
+    onLinkClick: (nextId) => selectLocation(nextId),
+    onCharacterClick: () => {}, // no character graph on this page
+  });
+  draw();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') panel.classList.remove('open'); });
+
+// gentle ambient animation for the wave lines — a living map, not a photo
+let phaseAnim;
+function tick(){
+  phase += 0.01;
+  draw();
+  phaseAnim = requestAnimationFrame(tick);
+}
+tick();
+</script>
+</body>
+</html>
+

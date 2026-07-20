@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mural Theories | The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E8DCC0; --ink:#1B2A41; --ink-soft:#33455e;
+    --brass-bright:#C99A3A; --teal:#1F5C56; --rust:#8C3B26; --void:#0b1622;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  .tool-nav{ display:flex; gap:8px; flex-wrap:wrap; padding:9px 28px; background:#D8C9A3;
+    border-bottom:2px solid var(--ink); font-family:'JetBrains Mono', monospace; font-size:11px; }
+  .tool-nav a{ padding:5px 11px; border:1.5px solid var(--ink); border-radius:999px; color:#33455e;
+    text-decoration:none; background:rgba(251,246,234,0.55); }
+  .tool-nav a:hover{ background:#fbf6ea; }
+  body{ background:var(--void); color:var(--parchment); font-family:'Crimson Text', serif; }
+  canvas.ambient-backdrop{ position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+
+  header{ padding:16px 28px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  h1{ font-family:'Pirata One', cursive; font-size:26px; margin:0; }
+  .tagline{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#33455e; margin:0; max-width:640px; }
+  a.back{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--rust); text-decoration:none; }
+  a.back:hover{ text-decoration:underline; }
+
+  main{ max-width:1180px; margin:0 auto; padding:24px 24px 60px; }
+
+  .disclaimer{ background:rgba(140,59,38,0.12); border:1.5px solid var(--rust); border-radius:8px;
+    padding:12px 16px; font-family:'JetBrains Mono', monospace; font-size:11px; color:#e8b9a3; line-height:1.7; margin-bottom:24px; }
+  .disclaimer b{ color:var(--parchment); }
+
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:26px;
+    position:sticky; top:0; background:var(--void); padding:14px 0; z-index:5; border-bottom:1px solid rgba(232,220,192,0.15); }
+  #search{ font-family:'Crimson Text', serif; font-size:15px; padding:8px 14px; border-radius:6px;
+    border:1.5px solid rgba(232,220,192,0.35); background:rgba(232,220,192,0.06); color:var(--parchment); min-width:220px; }
+  #search::placeholder{ color:#5c6f7d; }
+  .statuschips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .statuschip{ font-family:'JetBrains Mono', monospace; font-size:11px; padding:6px 12px; border-radius:14px;
+    border:1.5px solid rgba(232,220,192,0.3); background:transparent; color:#9fb0bd; cursor:pointer; }
+  .statuschip.active{ background:var(--brass-bright); color:var(--ink); border-color:var(--brass-bright); }
+  .count{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#5c6f7d; margin-left:auto; }
+
+  .era{ margin-bottom:40px; }
+  .era h2{ font-family:'Pirata One', cursive; font-size:22px; color:var(--brass-bright); margin:0 0 4px;
+    padding-bottom:8px; border-bottom:2px solid var(--brass-bright); }
+  .era .blurb{ font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#9fb0bd; margin:0 0 16px; line-height:1.7; }
+
+  .theorygrid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
+  .theorycard{ background:var(--parchment); color:var(--ink); border-radius:8px; padding:16px 18px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.3); border:1.5px solid #6b4a2a; display:flex; gap:14px; }
+  .theorycard canvas{ flex:none; width:40px; height:40px; }
+  .theorycard .body{ flex:1; min-width:0; }
+  .subject{ font-size:13.5px; line-height:1.5; margin:0 0 8px; }
+  .theory{ font-size:13px; line-height:1.55; margin:0 0 10px; color:#33455e; font-style:italic; }
+  .meta{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .statustag{ font-family:'JetBrains Mono', monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em;
+    padding:2px 8px; border-radius:8px; color:#fff; }
+  .statustag.unconfirmed{ background:#8a7a5c; }
+  .statustag.partially-confirmed{ background:#a67c27; }
+  .statustag.confirmed{ background:#2f8f5f; }
+  .statustag.contradicted{ background:#a7422a; }
+  .since{ font-family:'JetBrains Mono', monospace; font-size:9.5px; color:#5c6f7d; }
+  .confirmednote{ font-size:12px; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(27,42,65,0.2); color:#1F5C56; }
+
+  .empty{ font-family:'JetBrains Mono', monospace; font-size:12px; color:#5c6f7d; }
+</style>
+</head>
+<body>
+
+<canvas class="ambient-backdrop" id="ambientBackdrop"></canvas>
+
+<header>
+  <div>
+    <h1>Mural Theories</h1>
+    <p class="tagline">What fans are reading into the world-history mural, tracked here as open theories, not claimed facts, so each one can be marked confirmed, contradicted, or left alone as the story continues.</p>
+  </div>
+  <a class="back" href="../../">← back to the atlas</a>
+</header>
+<nav class="tool-nav">
+  <a href="../../">🧭 Atlas</a>
+  <a href="../story-graph/">🌐 Story Graph</a>
+  <a href="../time-travel/">⏳ Time Travel</a>
+  <a href="../bounty-chart/">💰 Bounty Chart</a>
+  <a href="../route-animation/">⛵ Route Animation</a>
+  <a href="../qa/">❓ Ask the Atlas</a>
+  <a href="../bounties/">💵 Bounty Board</a>
+  <a href="../devil-fruits/">🍈 Devil Fruits</a>
+  <a href="../origins/">🌳 Origin Tree</a>
+  <a href="../family-tree/">🧬 Family Tree</a>
+  <a href="../flat-map/">🗺 Flat Map</a>
+</nav>
+
+<main>
+  <div class="disclaimer">
+    <b>This page holds theories, not canon.</b> Nothing here reproduces the mural artwork itself or any fan
+    theorist's original wording. Every entry is our own paraphrase of what's depicted and what fans have
+    proposed it means, clearly marked by confidence. Status updates only when an actual chapter confirms,
+    contradicts, or partially confirms a read, never on vibes.
+  </div>
+
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Search a theory or subject…" autocomplete="off">
+    <div class="statuschips" id="statusChips"></div>
+    <span class="count" id="resultCount"></span>
+  </div>
+
+  <div id="eras"></div>
+</main>
+
+<script type="module">
+import { THEORY_ERAS, THEORIES } from '../../src/data/theories.js';
+import { startAmbientBackdrop } from '../../src/scene/ambientBackdrop.js';
+
+startAmbientBackdrop(document.getElementById('ambientBackdrop'));
+
+const STATUSES = [
+  { id: 'all', label: 'All' },
+  { id: 'unconfirmed', label: 'Unconfirmed' },
+  { id: 'partially-confirmed', label: 'Partially Confirmed' },
+  { id: 'confirmed', label: 'Confirmed' },
+  { id: 'contradicted', label: 'Contradicted' },
+];
+let activeStatus = 'all';
+const statusChipsEl = document.getElementById('statusChips');
+statusChipsEl.innerHTML = STATUSES.map(s => `<button class="statuschip${s.id === 'all' ? ' active' : ''}" data-status="${s.id}">${s.label}</button>`).join('');
+statusChipsEl.addEventListener('click', e => {
+  const btn = e.target.closest('.statuschip');
+  if (!btn) return;
+  activeStatus = btn.dataset.status;
+  statusChipsEl.querySelectorAll('.statuschip').forEach(b => b.classList.toggle('active', b === btn));
+  render();
+});
+
+const searchEl = document.getElementById('search');
+searchEl.addEventListener('input', render);
+
+/** Every icon here is an original, abstract line-glyph representing the
+ *  general category (a skyline, a tree, a trident) — not a redrawing of
+ *  anything in the actual mural artwork. */
+function drawIcon(canvas, kind){
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = 40 * dpr; canvas.height = 40 * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = '#8C3B26'; ctx.fillStyle = '#8C3B26'; ctx.lineWidth = 2;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const cx = 20, cy = 20;
+  ctx.beginPath();
+  switch (kind){
+    case 'city':
+      [[6, 10, 6, 24], [13, 4, 7, 30], [21, 12, 6, 22], [28, 7, 6, 27]].forEach(([x, y, w, h]) => ctx.rect(x, y, w, h));
+      ctx.stroke(); break;
+    case 'stairs':
+      ctx.moveTo(6, 32); ctx.lineTo(14, 32); ctx.lineTo(14, 24); ctx.lineTo(21, 24);
+      ctx.lineTo(21, 16); ctx.lineTo(28, 16); ctx.lineTo(28, 8); ctx.lineTo(34, 8);
+      ctx.stroke(); break;
+    case 'serpent':
+      ctx.moveTo(5, 30); ctx.quadraticCurveTo(14, 10, 20, 22); ctx.quadraticCurveTo(26, 34, 35, 12);
+      ctx.stroke(); break;
+    case 'tree':
+      ctx.moveTo(20, 34); ctx.lineTo(20, 20); ctx.stroke();
+      ctx.beginPath(); ctx.arc(20, 13, 11, 0, Math.PI * 2); ctx.stroke(); break;
+    case 'ship':
+      ctx.moveTo(6, 24); ctx.quadraticCurveTo(20, 34, 34, 24); ctx.lineTo(30, 24); ctx.lineTo(10, 24); ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(20, 24); ctx.lineTo(20, 6); ctx.moveTo(20, 8); ctx.lineTo(30, 12); ctx.stroke(); break;
+    case 'dragon':
+      ctx.moveTo(4, 28); ctx.lineTo(12, 12); ctx.lineTo(18, 20); ctx.lineTo(24, 6); ctx.lineTo(30, 18); ctx.lineTo(36, 10);
+      ctx.stroke(); break;
+    case 'allies':
+      [[13, 15], [27, 15], [20, 28]].forEach(([x, y]) => { ctx.moveTo(x + 5, y); ctx.arc(x, y, 5, 0, Math.PI * 2); });
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(13, 15); ctx.lineTo(27, 15); ctx.moveTo(13, 15); ctx.lineTo(20, 28);
+      ctx.moveTo(27, 15); ctx.lineTo(20, 28); ctx.setLineDash([2, 3]); ctx.stroke(); ctx.setLineDash([]); break;
+    case 'giant':
+      ctx.rect(16, 5, 9, 27); ctx.rect(30, 20, 5, 12); ctx.stroke(); break;
+    case 'trident':
+      ctx.moveTo(20, 34); ctx.lineTo(20, 8); ctx.moveTo(12, 16); ctx.lineTo(12, 4); ctx.moveTo(28, 16); ctx.lineTo(28, 4);
+      ctx.moveTo(12, 16); ctx.quadraticCurveTo(20, 22, 28, 16); ctx.stroke(); break;
+    default:
+      ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.stroke();
+  }
+}
+
+const erasEl = document.getElementById('eras');
+const resultCount = document.getElementById('resultCount');
+
+function matches(t){
+  if (activeStatus !== 'all' && t.status !== activeStatus) return false;
+  const term = searchEl.value.trim().toLowerCase();
+  if (term){
+    const hay = [t.subject, t.theory, t.confirmedNote].filter(Boolean).join(' ').toLowerCase();
+    if (!hay.includes(term)) return false;
+  }
+  return true;
+}
+
+function render(){
+  let shown = 0;
+  erasEl.innerHTML = THEORY_ERAS.map(era => {
+    const entries = THEORIES.filter(t => t.era === era.id && matches(t));
+    shown += entries.length;
+    if (!entries.length) return '';
+    const cards = entries.map(t => `
+      <div class="theorycard">
+        <canvas data-icon="${t.icon}"></canvas>
+        <div class="body">
+          <p class="subject">${t.subject}</p>
+          <p class="theory">${t.theory}</p>
+          <div class="meta">
+            <span class="statustag ${t.status}">${t.status.replace('-', ' ')}</span>
+            <span class="since">since ${t.since}</span>
+          </div>
+          ${t.confirmedNote ? `<p class="confirmednote">${t.confirmedNote}</p>` : ''}
+        </div>
+      </div>
+    `).join('');
+    return `
+      <div class="era">
+        <h2>${era.label}</h2>
+        <p class="blurb">${era.blurb}</p>
+        <div class="theorygrid">${cards}</div>
+      </div>`;
+  }).join('') || '<p class="empty">No theories match this search.</p>';
+
+  erasEl.querySelectorAll('canvas[data-icon]').forEach(c => drawIcon(c, c.dataset.icon));
+  resultCount.textContent = `${shown} of ${THEORIES.length} theories`;
+}
+render();
+</script>
+</body>
+</html>

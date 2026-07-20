@@ -1,0 +1,12 @@
+node_modules/
+dist/
+draft-updates/
+.DS_Store
+graphify-out/
+story-graph/
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.impeccable/
+.agents/
+.claude/skills/
+agent/

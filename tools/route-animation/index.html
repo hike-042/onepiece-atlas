@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Route Animation | The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E8DCC0; --ink:#1B2A41; --brass-bright:#C99A3A; --teal:#1F5C56;
+    --rust:#8C3B26; --void:#0b1622; --void-deep:#050a11;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  .tool-nav{ display:flex; gap:8px; flex-wrap:wrap; padding:9px 28px; background:#D8C9A3;
+    border-bottom:2px solid var(--ink); font-family:'JetBrains Mono', monospace; font-size:11px; }
+  .tool-nav a{ padding:5px 11px; border:1.5px solid var(--ink); border-radius:999px; color:#33455e;
+    text-decoration:none; background:rgba(251,246,234,0.55); }
+  .tool-nav a:hover{ background:#fbf6ea; }
+  body{ background:var(--void); color:var(--parchment); font-family:'Crimson Text', serif;
+    overflow:hidden; height:100vh; display:flex; flex-direction:column; }
+  header{ padding:16px 28px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  h1{ font-family:'Pirata One', cursive; font-size:26px; margin:0; }
+  .tagline{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#33455e; margin:0; }
+  a.back{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--rust); text-decoration:none; }
+  a.back:hover{ text-decoration:underline; }
+
+  .ambient-backdrop{ position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+  #stage{ flex:1; position:relative; }
+  #globeCanvas{ position:absolute; inset:0; display:block; width:100%; height:100%; }
+  #labelLayer{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:2; }
+  .island-label{
+    position:absolute; left:0; top:0; width:max-content;
+    font-family:'Crimson Text', serif; font-size:13px; color:var(--parchment);
+    background:rgba(11,22,34,0.55); padding:2px 8px; border-radius:3px;
+    white-space:nowrap; pointer-events:none; user-select:none;
+    border:1px solid rgba(232,220,192,0.25);
+  }
+  .island-label.ship-label{
+    color:#1B2A41; background:rgba(201,154,58,0.85); border-color:rgba(27,42,65,0.4);
+    font-weight:600; box-shadow:0 0 8px rgba(201,154,58,0.5);
+  }
+
+  #logPanel{
+    position:absolute; top:16px; right:16px; z-index:3; width:250px; max-height:60%;
+    overflow-y:auto; background:rgba(11,22,34,0.9); border:2px solid var(--brass-bright);
+    border-radius:6px; padding:14px 16px; box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  }
+  #logPanel h3{ font-family:'JetBrains Mono', monospace; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:0.06em; color:#9fb0bd; margin:0 0 8px; }
+  #logPanel ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+  #logPanel li{ font-size:13.5px; padding:2px 0; border-bottom:1px solid rgba(232,220,192,0.08); }
+  #logPanel li:first-child{ color:var(--brass-bright); font-weight:600; }
+
+  .controls{
+    position:absolute; left:0; right:0; bottom:0; z-index:3; padding:14px 28px 20px;
+    background:linear-gradient(to top, rgba(5,10,17,0.95), rgba(5,10,17,0));
+    display:flex; align-items:center; gap:14px;
+  }
+  .controls button{
+    font-family:'JetBrains Mono', monospace; font-size:13px; padding:8px 16px;
+    background:var(--brass-bright); color:var(--ink); border:none; border-radius:18px; cursor:pointer; flex-shrink:0;
+  }
+  .controls .readout{ flex-shrink:0; min-width:200px; }
+  .controls .readout .now{ font-family:'Pirata One', cursive; font-size:18px; color:var(--brass-bright); margin:0; }
+  .controls .readout .saga{ font-family:'JetBrains Mono', monospace; font-size:10px; color:#9fb0bd; margin:0; }
+  .controls input[type=range]{ flex:1; accent-color:var(--brass-bright); }
+</style>
+</head>
+<body>
+
+<canvas class="ambient-backdrop" id="ambientBackdrop"></canvas>
+
+<header>
+  <div>
+    <h1>Route Animation</h1>
+    <p class="tagline">Watch the Thousand Sunny (and Merry before her) actually sail the whole journey so far</p>
+  </div>
+  <a class="back" href="../../">← back to the atlas</a>
+</header>
+<nav class="tool-nav">
+  <a href="../../">🧭 Atlas</a>
+  <a href="../story-graph/">🌐 Story Graph</a>
+  <a href="../time-travel/">⏳ Time Travel</a>
+  <a href="../bounty-chart/">💰 Bounty Chart</a>
+  <a href="../qa/">❓ Ask the Atlas</a>
+  <a href="../bounties/">💵 Bounty Board</a>
+  <a href="../devil-fruits/">🍈 Devil Fruits</a>
+  <a href="../origins/">🌳 Origin Tree</a>
+  <a href="../family-tree/">🧬 Family Tree</a>
+  <a href="../flat-map/">🗺 Flat Map</a>
+  <a href="../mural-theories/">📜 Mural Theories</a>
+</nav>
+
+<div id="stage">
+  <canvas id="globeCanvas"></canvas>
+  <div id="labelLayer"></div>
+  <div id="logPanel">
+    <h3>Visited so far</h3>
+    <ul id="log"></ul>
+  </div>
+  <div class="controls">
+    <button id="playBtn">▶ Play</button>
+    <div class="readout">
+      <p class="now" id="nowAt"></p>
+      <p class="saga" id="nowSaga"></p>
+    </div>
+    <input type="range" id="scrub" min="0" max="1" step="1" value="0">
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { setupScene, GLOBE_RADIUS } from '../../src/scene/setupScene.js';
+import { buildMarkers, updateLabelPositions } from '../../src/scene/markers.js';
+import { attachLandmarks } from '../../src/scene/landmarks.js';
+import { flyCameraTo } from '../../src/interaction.js';
+import { latLonToVec3, surfaceNormal } from '../../src/utils/geo.js';
+import { makeShipIconTexture } from '../../src/scene/texture.js';
+import { LOCATIONS } from '../../src/data/locations.js';
+import { startAmbientBackdrop } from '../../src/scene/ambientBackdrop.js';
+
+startAmbientBackdrop(document.getElementById('ambientBackdrop'));
+
+const canvas = document.getElementById('globeCanvas');
+const labelLayer = document.getElementById('labelLayer');
+const stage = document.getElementById('stage');
+
+const { renderer, scene, camera, controls, updateOcean } = setupScene(canvas, stage);
+controls.autoRotate = false;
+const clock = new THREE.Clock();
+const { markerObjects, labelEls } = buildMarkers(scene, labelLayer, LOCATIONS, GLOBE_RADIUS);
+attachLandmarks(scene, LOCATIONS, GLOBE_RADIUS);
+
+// the journey so far, in story order — everywhere reached or currently at,
+// skipping arcs not yet visited
+const route = LOCATIONS.filter(l => l.status !== 'upcoming');
+
+const shipSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeShipIconTexture('#C99A3A'), transparent: true }));
+shipSprite.scale.set(0.42, 0.42, 0.42);
+scene.add(shipSprite);
+
+const shipLabelEl = document.createElement('div');
+shipLabelEl.className = 'island-label ship-label';
+shipLabelEl.textContent = '⛵';
+labelLayer.appendChild(shipLabelEl);
+const shipLabelEntry = { el: shipLabelEl, loc: route[0], worldPos: shipSprite.position, priority: true };
+labelEls.push(shipLabelEntry);
+
+function positionShip(loc){
+  const pos = latLonToVec3(loc.lat, loc.lon + 3, GLOBE_RADIUS + 0.09);
+  shipSprite.position.copy(pos);
+  shipLabelEntry.worldPos = shipSprite.position;
+  shipLabelEntry.loc = loc;
+}
+
+const scrub = document.getElementById('scrub');
+scrub.max = String(route.length - 1);
+const nowAtEl = document.getElementById('nowAt');
+const nowSagaEl = document.getElementById('nowSaga');
+const logEl = document.getElementById('log');
+const playBtn = document.getElementById('playBtn');
+
+let currentStop = 0;
+let playing = false;
+let tweening = false;
+let animToken = 0;
+
+function renderLog(uptoIdx){
+  logEl.innerHTML = route.slice(0, uptoIdx + 1).reverse().map(l => `<li>${l.name}</li>`).join('');
+}
+
+function landAt(idx, { fly = true } = {}){
+  currentStop = idx;
+  const loc = route[idx];
+  positionShip(loc);
+  nowAtEl.textContent = loc.name;
+  nowSagaEl.textContent = loc.saga;
+  renderLog(idx);
+  scrub.value = String(idx);
+  if (fly) flyCameraTo(camera, controls, loc.lat, loc.lon);
+}
+
+function slerp(a, b, t){
+  const dot = THREE.MathUtils.clamp(a.dot(b), -1, 1);
+  const theta = Math.acos(dot) * t;
+  if (Math.abs(theta) < 1e-6) return a.clone();
+  const relative = b.clone().addScaledVector(a, -dot).normalize();
+  return a.clone().multiplyScalar(Math.cos(theta)).add(relative.multiplyScalar(Math.sin(theta)));
+}
+
+function sailTo(idx){
+  if (idx >= route.length){ playing = false; playBtn.textContent = '▶ Play'; return; }
+  tweening = true;
+  const token = ++animToken;
+  const from = surfaceNormal(route[currentStop].lat, route[currentStop].lon);
+  const to = surfaceNormal(route[idx].lat, route[idx].lon);
+  const startTime = performance.now();
+  const duration = 1400;
+
+  function step(now){
+    if (token !== animToken) return; // superseded by a manual scrub or a newer hop
+    const t = Math.min(1, (now - startTime) / duration);
+    const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const dir = slerp(from, to, ease);
+    shipSprite.position.copy(dir.multiplyScalar(GLOBE_RADIUS + 0.09));
+    shipLabelEntry.worldPos = shipSprite.position;
+    if (t < 1){
+      requestAnimationFrame(step);
+    } else {
+      tweening = false;
+      landAt(idx);
+      if (playing) setTimeout(() => { if (token === animToken) sailTo(idx + 1); }, 700);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+playBtn.addEventListener('click', () => {
+  if (playing){
+    playing = false;
+    playBtn.textContent = '▶ Play';
+    return;
+  }
+  playing = true;
+  playBtn.textContent = '⏸ Pause';
+  if (tweening) return; // already mid-hop, will keep going since `playing` is true
+  const next = currentStop + 1 < route.length ? currentStop + 1 : null;
+  if (next === null){ playing = false; playBtn.textContent = '▶ Play'; return; }
+  sailTo(next);
+});
+
+scrub.addEventListener('input', () => {
+  animToken++; // invalidate any in-flight tween so it can't overwrite this jump later
+  tweening = false;
+  playing = false;
+  playBtn.textContent = '▶ Play';
+  landAt(Number(scrub.value));
+});
+
+landAt(0, { fly: true });
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  updateOcean(clock.getDelta());
+  updateLabelPositions(labelEls, camera, stage, GLOBE_RADIUS, null);
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+name: Check for new official One Piece chapter
+
+# Runs weekly, timed after One Piece's typical Sunday (US) / Monday (JP)
+# official release. Also runnable manually from the Actions tab for an
+# on-demand check. This workflow NEVER pushes directly to main — it
+# only opens a pull request, so a human always reviews the proposed
+# facts before they enter the data files.
+on:
+  schedule:
+    # One Piece chapters post officially around 11am EST (16:00 UTC) on
+    # Sundays, with occasional break weeks and rare schedule shifts.
+    # There's no official webhook for "chapter just published," so this
+    # polls hourly through the known release window instead of guessing
+    # a single exact time — the state file (below) stops repeat polls
+    # from opening duplicate PRs once a chapter's already been found.
+    - cron: '0 14 * * 0'
+    - cron: '0 15 * * 0'
+    - cron: '0 16 * * 0'
+    - cron: '0 17 * * 0'
+    - cron: '0 18 * * 0'
+    - cron: '0 19 * * 0'
+    - cron: '0 20 * * 0'
+    - cron: '0 12 * * 1'   # Monday fallback, in case of a delayed release
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-and-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run the source-verified chapter check
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/check-new-chapter.mjs
+
+      - name: Check whether a draft was written
+        id: check_draft
+        run: |
+          if [ -d "draft-updates" ] && [ "$(ls -A draft-updates 2>/dev/null)" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open a pull request with the draft for human review
+        if: steps.check_draft.outputs.found == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Draft: proposed update from officially-confirmed chapter"
+          title: "Review needed: possible new chapter content"
+          branch: "chapter-update/${{ github.run_id }}"
+          body: |
+            This PR was opened automatically after `scripts/check-new-chapter.mjs`
+            found sources meeting the official-confirmation bar defined in that
+            script (see the `SYSTEM_PROMPT` for the exact rules — official
+            publisher sources only, minimum two independent confirmations,
+            no leak-tier sources under any circumstance).
+
+            **Nothing has been merged into the actual data files.** The
+            proposed facts are sitting in `draft-updates/` as JSON. Before
+            merging this PR:
+            1. Read `confirmedBy` in the draft file and verify those sources
+               yourself.
+            2. Manually add the facts into the appropriate files
+               (`src/data/locations.js`, `src/data/characters/*.js`,
+               `src/data/crews.js`) — or ask Claude Code to do it, pointing
+               it at this draft file and `CLAUDE.md`.
+            3. Delete the draft file once it's been incorporated.
+            4. Only then merge.
+          delete-branch: true
+
+      - name: Persist dedupe state directly (bookkeeping only, no story content)
+        if: always()
+        run: |
+          if [ -f "scripts/.chapter-check-state.json" ]; then
+            git config user.name "atlas-chapter-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add scripts/.chapter-check-state.json
+            git diff --cached --quiet && echo "No state change." || git commit -m "chore: update chapter-check dedupe state [skip ci]"
+            git push
+          fi

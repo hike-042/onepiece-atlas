@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devil Fruit Encyclopedia | The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E8DCC0; --parchment-dark:#D8C9A3; --ink:#1B2A41; --ink-soft:#33455e;
+    --brass-bright:#C99A3A; --teal:#1F5C56; --rust:#8C3B26; --void:#0b1622; --void-deep:#050a11;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  .tool-nav{ display:flex; gap:8px; flex-wrap:wrap; padding:9px 28px; background:#D8C9A3;
+    border-bottom:2px solid var(--ink); font-family:'JetBrains Mono', monospace; font-size:11px; }
+  .tool-nav a{ padding:5px 11px; border:1.5px solid var(--ink); border-radius:999px; color:#33455e;
+    text-decoration:none; background:rgba(251,246,234,0.55); }
+  .tool-nav a:hover{ background:#fbf6ea; }
+  body{ background:var(--void); color:var(--parchment); font-family:'Crimson Text', serif; }
+  header{ padding:16px 28px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  h1{ font-family:'Pirata One', cursive; font-size:26px; margin:0; }
+  .tagline{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#33455e; margin:0; }
+  a.back{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--rust); text-decoration:none; }
+  a.back:hover{ text-decoration:underline; }
+
+  main{ max-width:1180px; margin:0 auto; padding:24px 24px 60px; }
+  section{ margin-bottom:40px; }
+  h2{ font-family:'Pirata One', cursive; font-size:22px; color:var(--brass-bright); margin:0 0 4px; }
+  .note{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#9fb0bd; margin:0 0 16px; line-height:1.6; }
+
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;
+    position:sticky; top:0; background:var(--void); padding:14px 0; z-index:5; border-bottom:1px solid rgba(232,220,192,0.15); }
+  #search{ font-family:'Crimson Text', serif; font-size:15px; padding:8px 14px; border-radius:6px;
+    border:1.5px solid rgba(232,220,192,0.35); background:rgba(232,220,192,0.06); color:var(--parchment); min-width:220px; }
+  #search::placeholder{ color:#5c6f7d; }
+  select{ font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:8px 10px; border-radius:6px;
+    border:1.5px solid rgba(232,220,192,0.35); background:var(--void-deep); color:var(--parchment); }
+  .statuschips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .statuschip{ font-family:'JetBrains Mono', monospace; font-size:11px; padding:6px 12px; border-radius:14px;
+    border:1.5px solid rgba(232,220,192,0.3); background:transparent; color:#9fb0bd; cursor:pointer; }
+  .statuschip.active{ background:var(--brass-bright); color:var(--ink); border-color:var(--brass-bright); }
+  .count{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#5c6f7d; margin-left:auto; }
+
+  .statsbar{ display:flex; gap:16px; flex-wrap:wrap; font-family:'JetBrains Mono', monospace; font-size:11px;
+    color:#9fb0bd; margin-bottom:24px; }
+  .statsbar b{ color:var(--brass-bright); }
+
+  .fruitgrid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px; }
+  .fruitcard{ background:var(--parchment); border-radius:8px; padding:16px 16px 14px; color:var(--ink);
+    box-shadow:0 6px 18px rgba(0,0,0,0.35); border:1.5px solid #6b4a2a; display:flex; flex-direction:column; gap:8px; }
+  .fruithead{ display:flex; align-items:center; gap:12px; }
+  .fruithead canvas{ flex:none; border-radius:50%; }
+  .fruitname{ font-family:'Pirata One', cursive; font-size:17px; line-height:1.2; margin:0; }
+  .fruittype{ display:inline-block; font-family:'JetBrains Mono', monospace; font-size:9.5px; text-transform:uppercase;
+    letter-spacing:0.05em; padding:2px 8px; border-radius:10px; margin-top:3px; color:#fff; }
+  .type-paramecia{ background:var(--teal); }
+  .type-zoan{ background:#7a4a25; }
+  .type-zoanmythical{ background:var(--brass-bright); color:var(--ink); }
+  .type-zoanancient{ background:#4f6a2f; }
+  .type-logia{ background:var(--ink-soft); }
+  .type-unknown{ background:#5c6f7d; }
+
+  .fruiteffect{ font-size:13.5px; line-height:1.5; margin:0; }
+  .fruitmeta{ font-size:12px; line-height:1.55; margin:0; border-top:1px dashed rgba(27,42,65,0.25); padding-top:8px; }
+  .fruitmeta b{ color:var(--rust); }
+  .fruitmeta .dot{ display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; }
+  .dot.alive{ background:#2f8f5f; } .dot.deceased{ background:#a7422a; } .dot.unknown{ background:#8a7a5c; }
+  .statustag{ align-self:flex-start; font-family:'JetBrains Mono', monospace; font-size:9.5px; text-transform:uppercase;
+    letter-spacing:0.05em; color:var(--rust); }
+  .empty{ font-family:'JetBrains Mono', monospace; font-size:12px; color:#5c6f7d; }
+  .ambient-backdrop{ position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+
+  .primer{ background:rgba(232,220,192,0.05); border:1.5px solid rgba(232,220,192,0.2); border-radius:8px;
+    padding:16px 20px; margin-bottom:28px; }
+  .primer h2{ font-size:18px; margin-bottom:10px; }
+  .primergrid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px 20px; margin-bottom:12px; }
+  .primergrid div{ font-size:13.5px; line-height:1.5; }
+  .primergrid b{ color:var(--brass-bright); display:block; font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
+  .primerrules{ font-size:12.5px; line-height:1.7; color:#c9d3da; margin:0; padding-left:18px; }
+
+  .counttable{ margin-top:16px; padding-top:14px; border-top:1px solid rgba(232,220,192,0.15); }
+  .counttable h3{ font-family:'Pirata One', cursive; font-size:15px; color:var(--parchment); margin:0 0 8px; }
+  .counttable table{ border-collapse:collapse; width:100%; font-size:12.5px; }
+  .counttable th, .counttable td{ padding:6px 12px; text-align:left; border-bottom:1px solid rgba(232,220,192,0.12); }
+  .counttable th{ font-family:'JetBrains Mono', monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:#9fb0bd; }
+  .counttable td{ color:#dbe2e8; }
+  .counttable tr.totalrow td{ color:var(--brass-bright); font-weight:600; border-top:1.5px solid rgba(232,220,192,0.3); border-bottom:none; }
+  .counttable .srcnote{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:#5c6f7d; margin:8px 0 0; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<canvas class="ambient-backdrop" id="ambientBackdrop"></canvas>
+
+<header>
+  <div>
+    <h1>Devil Fruit Encyclopedia</h1>
+    <p class="tagline">Every catalogued fruit: its power, who wields it now, who came before, and where its story began</p>
+  </div>
+  <a class="back" href="../../">← back to the atlas</a>
+</header>
+<nav class="tool-nav">
+  <a href="../../">🧭 Atlas</a>
+  <a href="../story-graph/">🌐 Story Graph</a>
+  <a href="../time-travel/">⏳ Time Travel</a>
+  <a href="../bounty-chart/">💰 Bounty Chart</a>
+  <a href="../route-animation/">⛵ Route Animation</a>
+  <a href="../qa/">❓ Ask the Atlas</a>
+  <a href="../bounties/">💵 Bounty Board</a>
+  <a href="../origins/">🌳 Origin Tree</a>
+  <a href="../family-tree/">🧬 Family Tree</a>
+  <a href="../flat-map/">🗺 Flat Map</a>
+  <a href="../mural-theories/">📜 Mural Theories</a>
+</nav>
+
+<main>
+  <div class="primer">
+    <h2>How Devil Fruits work</h2>
+    <div class="primergrid">
+      <div><b>Paramecia</b>The broadest category: a single superhuman trait or ability that covers everything short of transforming into an animal or an element.</div>
+      <div><b>Zoan</b>Grants transformation into a specific animal, plus a human-animal hybrid mid-form. Ancient Zoans (extinct species) and Mythical Zoans (legendary creatures) are progressively rarer and stronger.</div>
+      <div><b>Logia</b>The rarest class: lets the user become, generate, and control a natural element outright, with near-total physical immunity while transformed.</div>
+    </div>
+    <ul class="primerrules">
+      <li>Only one person can hold a given fruit's power at a time; when its user dies, that power resurfaces in a fresh fruit somewhere else in the world.</li>
+      <li>Eating a second Devil Fruit is fatal to nearly everyone who's tried it; Marshall D. Teach is the sole known exception, and even that isn't explained in-story.</li>
+      <li>Every user permanently loses the ability to swim, and can be weakened the same way by <b>Seastone</b>, a mineral that saps their strength on contact.</li>
+      <li>With enough mastery, a power can rarely reach <b>Awakening</b>, letting its effects extend beyond the user's own body.</li>
+    </ul>
+    <div class="counttable">
+      <h3>Devil Fruit Count</h3>
+      <table>
+        <thead><tr><th>Type</th><th>Catalogued here</th><th>Known across the series</th></tr></thead>
+        <tbody id="countTableBody"></tbody>
+      </table>
+      <p class="srcnote">"Known across the series" is the manga's current published tally of canon fruits. This atlas catalogues a curated subset with full lineage detail, not the complete list, so the gap is expected and will only close gradually.</p>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Search a fruit, power, or user…" autocomplete="off">
+    <select id="typeFilter"></select>
+    <div class="statuschips" id="statusChips"></div>
+    <span class="count" id="resultCount"></span>
+  </div>
+  <div class="statsbar" id="statsBar"></div>
+
+  <section>
+    <div class="fruitgrid" id="fruitGrid"></div>
+  </section>
+</main>
+
+<script type="module">
+import { DEVIL_FRUITS } from '../../src/data/devilFruits.js';
+import { CHARACTERS as ALL_CHARACTERS, findCharacterById } from '../../src/data/characters/index.js';
+import { LOCATIONS } from '../../src/data/locations.js';
+import { startAmbientBackdrop } from '../../src/scene/ambientBackdrop.js';
+
+startAmbientBackdrop(document.getElementById('ambientBackdrop'));
+
+// Same curated-vs-stub name collision as the Bounty Board; dedupe by
+// normalized name, keeping the first (curated) occurrence.
+const seenNames = new Set();
+const CHARACTERS = ALL_CHARACTERS.filter(c => {
+  const key = c.name.toLowerCase().replace(/[^a-z]/g, '');
+  if (seenNames.has(key)) return false;
+  seenNames.add(key);
+  return true;
+});
+function charById(id){ return CHARACTERS.find(c => c.id === id) || findCharacterById(id); }
+function locById(id){ return LOCATIONS.find(l => l.id === id); }
+
+const TYPE_LABELS = {
+  'Paramecia': ['Paramecia', 'type-paramecia'],
+  'Zoan': ['Zoan', 'type-zoan'],
+  'Zoan (Mythical)': ['Zoan · Mythical', 'type-zoanmythical'],
+  'Zoan (Ancient)': ['Zoan · Ancient', 'type-zoanancient'],
+  'Logia': ['Logia', 'type-logia'],
+};
+function typeBadge(type){
+  return TYPE_LABELS[type] || [type || 'Unknown', 'type-unknown'];
+}
+
+const typeFilterEl = document.getElementById('typeFilter');
+const typeOptions = ['All types', 'Paramecia', 'Zoan', 'Zoan (Mythical)', 'Zoan (Ancient)', 'Logia'];
+typeFilterEl.innerHTML = typeOptions.map(t => `<option value="${t === 'All types' ? '' : t}">${t}</option>`).join('');
+
+const STATUSES = [
+  { id: 'all', label: 'All' },
+  { id: 'active', label: 'Active' },
+  { id: 'destroyed-with-user', label: 'Destroyed with user' },
+  { id: 'unclaimed', label: 'Unclaimed' },
+  { id: 'unknown', label: 'Unknown' },
+];
+let activeStatus = 'all';
+const statusChipsEl = document.getElementById('statusChips');
+statusChipsEl.innerHTML = STATUSES.map(s => `<button class="statuschip${s.id === 'all' ? ' active' : ''}" data-status="${s.id}">${s.label}</button>`).join('');
+statusChipsEl.addEventListener('click', e => {
+  const btn = e.target.closest('.statuschip');
+  if (!btn) return;
+  activeStatus = btn.dataset.status;
+  statusChipsEl.querySelectorAll('.statuschip').forEach(b => b.classList.toggle('active', b === btn));
+  render();
+});
+
+const searchEl = document.getElementById('search');
+searchEl.addEventListener('input', render);
+typeFilterEl.addEventListener('change', render);
+
+/** Per-fruit icon, keyed by id rather than pattern-matched. Every fruit
+ *  here is already individually catalogued, so an exact lookup is more
+ *  reliable than guessing from its name. Falls back to a generic fruit
+ *  ring for anything not yet mapped. All shapes are original canvas
+ *  drawings, no traced or reproduced artwork. */
+const FRUIT_ICON = {
+  'gomu-gomu':'spiral', 'mera-mera':'flame', 'yami-yami':'void', 'gura-gura':'quake',
+  'hana-hana':'hand', 'hito-hito-chopper':'human', 'yomi-yomi':'skull', 'ope-ope':'surgery',
+  'suna-suna':'sand', 'ito-ito':'thread', 'mero-mero':'heart', 'uo-uo-kaido':'wing',
+  'soru-soru':'soul', 'bara-bara':'split', 'jiki-jiki':'magnet', 'toshi-toshi':'hourglass',
+  'horu-horu':'syringe', 'magu-magu':'flame', 'hie-hie':'snowflake', 'pika-pika':'light',
+  'moku-moku':'smoke', 'zushi-zushi':'orbit', 'oto-oto':'note', 'ryu-ryu-drake':'wing',
+  'shiro-shiro':'fortress', 'waru-waru':'strawman', 'ryu-ryu-loki':'wing',
+  'hito-hito-daibutsu':'human', 'munch-munch':'jaw',
+  'bari-bari':'shield', 'mane-mane':'human', 'suke-suke':'invisible', 'nagi-nagi':'mute',
+  'toki-toki':'hourglass', 'yuki-yuki':'snowflake', 'fude-fude':'brush',
+  'hebi-hebi-orochi':'serpent', 'horo-horo':'ghost', 'bomu-bomu':'burst',
+};
+
+function drawIcon(ctx, kind, cx, cy, r, color){
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 3;
+  ctx.beginPath();
+  switch(kind){
+    case 'spiral':
+      for (let a = 0; a < Math.PI*3.4; a += 0.2){
+        const rr = (a / (Math.PI*3.4)) * r*0.8;
+        const x = cx + Math.cos(a)*rr, y = cy + Math.sin(a)*rr;
+        if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke(); break;
+    case 'flame':
+      ctx.moveTo(cx, cy - r); ctx.quadraticCurveTo(cx + r*0.7, cy, cx, cy + r);
+      ctx.quadraticCurveTo(cx - r*0.7, cy, cx, cy - r); ctx.fill(); break;
+    case 'void':
+      ctx.arc(cx, cy, r*0.75, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#f3ead6';
+      ctx.beginPath(); ctx.arc(cx + r*0.2, cy - r*0.15, r*0.32, 0, Math.PI*2); ctx.fill(); break;
+    case 'quake':
+      ctx.moveTo(cx - r, cy);
+      [[-0.6,-0.35],[-0.3,0.3],[0,-0.3],[0.3,0.3],[0.6,-0.2]].forEach(([ox,oy]) => ctx.lineTo(cx + ox*r, cy + oy*r));
+      ctx.lineTo(cx + r, cy);
+      ctx.lineWidth = 3.4; ctx.stroke(); break;
+    case 'hand':
+      ctx.arc(cx, cy + r*0.35, r*0.32, 0, Math.PI*2); ctx.fill();
+      [[-0.45,-1],[-0.15,-1.15],[0.15,-1.15],[0.45,-1]].forEach(([ox,oy]) => {
+        ctx.beginPath(); ctx.moveTo(cx + ox*r*0.55, cy + r*0.1); ctx.lineTo(cx + ox*r*0.7, cy + oy*r*0.55); ctx.lineWidth = 2.6; ctx.stroke();
+      }); break;
+    case 'human':
+      ctx.arc(cx, cy - r*0.5, r*0.28, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx, cy - r*0.2); ctx.lineTo(cx, cy + r*0.5);
+      ctx.moveTo(cx - r*0.4, cy); ctx.lineTo(cx + r*0.4, cy);
+      ctx.moveTo(cx, cy + r*0.5); ctx.lineTo(cx - r*0.3, cy + r);
+      ctx.moveTo(cx, cy + r*0.5); ctx.lineTo(cx + r*0.3, cy + r);
+      ctx.lineWidth = 2.6; ctx.stroke(); break;
+    case 'skull':
+      ctx.arc(cx, cy - r*0.15, r*0.55, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx - r*0.2, cy - r*0.2, r*0.1, 0, Math.PI*2);
+      ctx.arc(cx + r*0.2, cy - r*0.2, r*0.1, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx - r*0.22, cy + r*0.35); ctx.lineTo(cx + r*0.22, cy + r*0.35); ctx.lineWidth = 2.4; ctx.stroke(); break;
+    case 'surgery':
+      ctx.arc(cx, cy, r*0.62, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy - r*0.32); ctx.lineTo(cx, cy + r*0.32);
+      ctx.moveTo(cx - r*0.32, cy); ctx.lineTo(cx + r*0.32, cy); ctx.lineWidth = 2.6; ctx.stroke(); break;
+    case 'sand':
+      ctx.moveTo(cx - r*0.8, cy + r*0.3);
+      ctx.quadraticCurveTo(cx - r*0.3, cy + r*0.05, cx, cy + r*0.3);
+      ctx.quadraticCurveTo(cx + r*0.3, cy + r*0.55, cx + r*0.8, cy + r*0.3);
+      ctx.lineWidth = 2.4; ctx.stroke();
+      [[-0.4,-0.4],[0,-0.7],[0.4,-0.3]].forEach(([ox,oy]) => { ctx.beginPath(); ctx.arc(cx+ox*r, cy+oy*r, r*0.07, 0, Math.PI*2); ctx.fill(); });
+      break;
+    case 'thread':
+      ctx.moveTo(cx - r*0.7, cy - r*0.7); ctx.quadraticCurveTo(cx, cy, cx + r*0.7, cy + r*0.7);
+      ctx.moveTo(cx + r*0.7, cy - r*0.7); ctx.quadraticCurveTo(cx, cy, cx - r*0.7, cy + r*0.7);
+      ctx.lineWidth = 2.2; ctx.stroke(); break;
+    case 'heart':
+      ctx.moveTo(cx, cy + r*0.6);
+      ctx.bezierCurveTo(cx - r*1.1, cy - r*0.3, cx - r*0.4, cy - r*0.9, cx, cy - r*0.3);
+      ctx.bezierCurveTo(cx + r*0.4, cy - r*0.9, cx + r*1.1, cy - r*0.3, cx, cy + r*0.6);
+      ctx.fill(); break;
+    case 'wing':
+      ctx.moveTo(cx - r*0.8, cy + r*0.5);
+      ctx.quadraticCurveTo(cx - r*0.2, cy - r*0.9, cx + r*0.8, cy - r*0.6);
+      ctx.quadraticCurveTo(cx + r*0.1, cy - r*0.35, cx + r*0.55, cy + r*0.1);
+      ctx.quadraticCurveTo(cx - r*0.05, cy - r*0.05, cx - r*0.35, cy + r*0.55);
+      ctx.closePath(); ctx.fill(); break;
+    case 'soul':
+      ctx.arc(cx, cy - r*0.2, r*0.3, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx - r*0.12, cy + r*0.08);
+      ctx.quadraticCurveTo(cx - r*0.55, cy + r*0.5, cx - r*0.05, cy + r*0.85);
+      ctx.lineWidth = 2.4; ctx.stroke(); break;
+    case 'split':
+      ctx.fillRect(cx - r*0.8, cy - r*0.35, r*0.55, r*0.7);
+      ctx.fillRect(cx + r*0.25, cy - r*0.35, r*0.55, r*0.7); break;
+    case 'magnet':
+      ctx.arc(cx, cy, r*0.65, 0.2, Math.PI - 0.2); ctx.lineWidth = 5; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - r*0.65, cy - r*0.03); ctx.lineTo(cx - r*0.65, cy - r*0.45);
+      ctx.moveTo(cx + r*0.65, cy - r*0.03); ctx.lineTo(cx + r*0.65, cy - r*0.45);
+      ctx.lineWidth = 5; ctx.stroke(); break;
+    case 'hourglass':
+      ctx.moveTo(cx - r*0.55, cy - r*0.8); ctx.lineTo(cx + r*0.55, cy - r*0.8); ctx.lineTo(cx, cy);
+      ctx.lineTo(cx + r*0.55, cy + r*0.8); ctx.lineTo(cx - r*0.55, cy + r*0.8); ctx.closePath();
+      ctx.lineWidth = 2.2; ctx.stroke(); break;
+    case 'syringe':
+      ctx.fillRect(cx - r*0.6, cy - r*0.18, r*0.9, r*0.36);
+      ctx.beginPath(); ctx.moveTo(cx + r*0.3, cy); ctx.lineTo(cx + r*0.85, cy); ctx.lineWidth = 2.4; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - r*0.6, cy - r*0.3); ctx.lineTo(cx - r*0.6, cy + r*0.3); ctx.lineWidth = 2.4; ctx.stroke(); break;
+    case 'light':
+      for (let a = 0; a < Math.PI*2; a += Math.PI/4){
+        ctx.moveTo(cx + Math.cos(a)*r*0.25, cy + Math.sin(a)*r*0.25);
+        ctx.lineTo(cx + Math.cos(a)*r*0.85, cy + Math.sin(a)*r*0.85);
+      }
+      ctx.lineWidth = 2.4; ctx.stroke(); break;
+    case 'smoke':
+      [-0.35, 0, 0.35].forEach(oy => {
+        ctx.moveTo(cx - r*0.75, cy + oy*r);
+        ctx.quadraticCurveTo(cx - r*0.25, cy + oy*r - r*0.22, cx, cy + oy*r);
+        ctx.quadraticCurveTo(cx + r*0.25, cy + oy*r + r*0.22, cx + r*0.75, cy + oy*r);
+      });
+      ctx.lineWidth = 2.2; ctx.stroke(); break;
+    case 'orbit':
+      ctx.save(); ctx.translate(cx, cy); ctx.scale(1, 0.55);
+      ctx.arc(0, 0, r*0.75, 0, Math.PI*2); ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
+      ctx.beginPath(); ctx.arc(cx + r*0.72, cy, r*0.13, 0, Math.PI*2); ctx.fill(); break;
+    case 'fortress':
+      ctx.fillRect(cx - r*0.65, cy - r*0.1, r*1.3, r*0.9);
+      [-0.55,-0.2,0.15,0.5].forEach(ox => ctx.fillRect(cx + ox*r, cy - r*0.35, r*0.22, r*0.28));
+      break;
+    case 'strawman':
+      ctx.arc(cx, cy - r*0.55, r*0.24, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - r*0.5, cy - r*0.9); ctx.lineTo(cx + r*0.5, cy + r*0.1);
+      ctx.moveTo(cx + r*0.5, cy - r*0.9); ctx.lineTo(cx - r*0.5, cy + r*0.1);
+      ctx.lineWidth = 2.4; ctx.stroke(); break;
+    case 'jaw':
+      ctx.ellipse(cx, cy, r*0.75, r*0.55, 0, 0, Math.PI*2); ctx.stroke();
+      for (let x = -0.4; x <= 0.4; x += 0.2){
+        ctx.beginPath(); ctx.moveTo(cx + x*r, cy - r*0.3); ctx.lineTo(cx + x*r, cy + r*0.3); ctx.lineWidth = 1.8; ctx.stroke();
+      }
+      break;
+    case 'snowflake':
+      for (let a = 0; a < Math.PI*2; a += Math.PI/3){
+        ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a)*r*0.75, cy + Math.sin(a)*r*0.75);
+        const tickAt = 0.55, tx = cx + Math.cos(a)*r*0.75*tickAt, ty = cy + Math.sin(a)*r*0.75*tickAt;
+        ctx.moveTo(tx + Math.cos(a+1.2)*r*0.18, ty + Math.sin(a+1.2)*r*0.18);
+        ctx.lineTo(tx - Math.cos(a+1.2)*r*0.18, ty - Math.sin(a+1.2)*r*0.18);
+      }
+      ctx.stroke(); break;
+    case 'note':
+      ctx.arc(cx - r*0.3, cy + r*0.4, r*0.25, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx, cy + r*0.4); ctx.lineTo(cx, cy - r*0.7); ctx.stroke(); break;
+    case 'shield':
+      ctx.moveTo(cx, cy - r*0.85);
+      ctx.quadraticCurveTo(cx + r*0.7, cy - r*0.6, cx + r*0.6, cy - r*0.1);
+      ctx.quadraticCurveTo(cx + r*0.5, cy + r*0.6, cx, cy + r*0.9);
+      ctx.quadraticCurveTo(cx - r*0.5, cy + r*0.6, cx - r*0.6, cy - r*0.1);
+      ctx.quadraticCurveTo(cx - r*0.7, cy - r*0.6, cx, cy - r*0.85);
+      ctx.lineWidth = 2.4; ctx.stroke(); break;
+    case 'invisible':
+      ctx.setLineDash([r*0.22, r*0.16]);
+      ctx.arc(cx, cy, r*0.65, 0, Math.PI*2); ctx.lineWidth = 2.4; ctx.stroke();
+      ctx.setLineDash([]); break;
+    case 'mute':
+      ctx.fillRect(cx - r*0.6, cy - r*0.18, r*0.4, r*0.36);
+      ctx.moveTo(cx - r*0.2, cy - r*0.18); ctx.lineTo(cx + r*0.35, cy - r*0.55);
+      ctx.lineTo(cx + r*0.35, cy + r*0.55); ctx.lineTo(cx - r*0.2, cy + r*0.18); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + r*0.55, cy - r*0.4); ctx.lineTo(cx + r*0.95, cy + r*0.4);
+      ctx.moveTo(cx + r*0.95, cy - r*0.4); ctx.lineTo(cx + r*0.55, cy + r*0.4);
+      ctx.lineWidth = 2.2; ctx.stroke(); break;
+    case 'brush':
+      ctx.moveTo(cx - r*0.6, cy + r*0.85); ctx.lineTo(cx + r*0.1, cy + r*0.15);
+      ctx.lineWidth = 3; ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx + r*0.05, cy + r*0.2); ctx.quadraticCurveTo(cx + r*0.1, cy - r*0.3, cx + r*0.55, cy - r*0.75);
+      ctx.quadraticCurveTo(cx + r*0.75, cy - r*0.55, cx + r*0.4, cy - r*0.1);
+      ctx.quadraticCurveTo(cx + r*0.2, cy + r*0.15, cx + r*0.05, cy + r*0.2);
+      ctx.fill(); break;
+    case 'serpent':
+      ctx.moveTo(cx - r*0.8, cy - r*0.5);
+      [[-0.4,0.5],[0,-0.5],[0.4,0.5],[0.8,-0.3]].forEach(([ox,oy]) => ctx.quadraticCurveTo(cx + (ox-0.2)*r, cy + oy*r*1.3, cx + ox*r, cy + oy*r*0.6));
+      ctx.lineWidth = 2.6; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx + r*0.8, cy - r*0.35, r*0.1, 0, Math.PI*2); ctx.fill(); break;
+    case 'ghost':
+      ctx.arc(cx, cy - r*0.05, r*0.55, Math.PI, 0);
+      ctx.lineTo(cx + r*0.55, cy + r*0.7);
+      [0.35, 0, -0.35].forEach((ox, i) => { const nx = cx + ox*r*1.4 + r*0.2; ctx.lineTo(nx, cy + (i % 2 === 0 ? r*0.45 : r*0.7)); });
+      ctx.lineTo(cx - r*0.55, cy + r*0.7); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#f3ead6';
+      [-0.22, 0.22].forEach(ox => { ctx.beginPath(); ctx.arc(cx + ox*r, cy - r*0.1, r*0.09, 0, Math.PI*2); ctx.fill(); }); break;
+    case 'burst':
+      for (let a = 0; a < Math.PI*2; a += Math.PI/6){
+        const inner = a % (Math.PI/3) === 0 ? r*0.3 : r*0.15;
+        ctx.moveTo(cx + Math.cos(a)*inner, cy + Math.sin(a)*inner);
+        ctx.lineTo(cx + Math.cos(a)*r*0.9, cy + Math.sin(a)*r*0.9);
+      }
+      ctx.lineWidth = 2.4; ctx.stroke(); break;
+    default:
+      ctx.arc(cx, cy + r*0.1, r*0.6, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy - r*0.5); ctx.quadraticCurveTo(cx + r*0.3, cy - r*0.85, cx + r*0.15, cy - r*0.95);
+      ctx.stroke();
+  }
+}
+
+const MEDALLION_COLOR = {
+  'Paramecia': ['#1F5C56', '#eaf4f2'], 'Zoan': ['#7a4a25', '#f6ecdd'],
+  'Zoan (Mythical)': ['#C99A3A', '#33261a'], 'Zoan (Ancient)': ['#4f6a2f', '#eef2e6'],
+  'Logia': ['#33455e', '#eaeef4'],
+};
+function medallionColors(type){
+  for (const key in MEDALLION_COLOR) if (type.includes(key)) return MEDALLION_COLOR[key];
+  return ['#5c6f7d', '#eee'];
+}
+function drawMedallion(canvas, fruit){
+  const size = 64, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = size * dpr; canvas.height = size * dpr;
+  canvas.style.width = size + 'px'; canvas.style.height = size + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const [bg, fg] = medallionColors(fruit.type);
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.arc(size/2, size/2, size/2, 0, Math.PI*2); ctx.fill();
+  drawIcon(ctx, FRUIT_ICON[fruit.id] || 'fruit', size/2, size/2, size*0.28, fg);
+}
+
+/** A natural-language line for former wielders, in keeping with how the
+ *  rest of the atlas phrases lineage (no arrow chains). */
+function historySentence(fruit){
+  const names = fruit.formerUsers.map(id => charById(id)?.name || id).filter(Boolean);
+  if (!names.length) return '';
+  if (names.length === 1) return `Previously wielded by ${names[0]}.`;
+  return `Previously wielded by ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}.`;
+}
+
+function firstAppearance(fruit){
+  const holderId = fruit.currentUser || fruit.formerUsers[0];
+  const holder = holderId && charById(holderId);
+  const loc = holder && locById(holder.firstSeenAt);
+  return loc ? `${loc.name} (${loc.saga})` : null;
+}
+
+const STATUS_LABEL = {
+  'active': null,
+  'destroyed-with-user': '⚠ Destroyed with its last user',
+  'unclaimed': '◇ Unclaimed',
+  'unknown': '? Status unknown',
+};
+
+function matchesFilters(f){
+  const term = searchEl.value.trim().toLowerCase();
+  const typeVal = typeFilterEl.value;
+  if (typeVal && !f.type.includes(typeVal)) return false;
+  if (activeStatus !== 'all' && f.status !== activeStatus) return false;
+  if (term){
+    const user = f.currentUser && charById(f.currentUser)?.name || '';
+    const former = f.formerUsers.map(id => charById(id)?.name || '').join(' ');
+    const hay = [f.name, f.type, f.effect, f.origin, user, former].filter(Boolean).join(' ').toLowerCase();
+    if (!hay.includes(term)) return false;
+  }
+  return true;
+}
+
+const fruitGrid = document.getElementById('fruitGrid');
+const resultCount = document.getElementById('resultCount');
+const statsBar = document.getElementById('statsBar');
+
+function renderStats(){
+  const counts = {};
+  DEVIL_FRUITS.forEach(f => {
+    const [label] = typeBadge(f.type);
+    counts[label] = (counts[label] || 0) + 1;
+  });
+  statsBar.innerHTML = `<span><b>${DEVIL_FRUITS.length}</b> fruits catalogued</span>` +
+    Object.entries(counts).map(([label, n]) => `<span><b>${n}</b> ${label}</span>`).join('');
+}
+renderStats();
+
+/** Series-wide canon totals, per the manga's most recently published
+ *  tally (a fact, not our own estimate), shown alongside how many of
+ *  each type this atlas has catalogued so far, for honest context on
+ *  how much of the full roster is covered here. */
+const CANON_TOTALS = [
+  ['Paramecia', f => f.type === 'Paramecia', 94],
+  ['Zoan (incl. Ancient & Mythical)', f => f.type.includes('Zoan'), 57],
+  ['Logia', f => f.type === 'Logia', 13],
+  ['Undetermined', f => !['Paramecia', 'Logia'].includes(f.type) && !f.type.includes('Zoan'), 4],
+];
+function renderCountTable(){
+  const rows = CANON_TOTALS.map(([label, test, canonTotal]) => {
+    const here = DEVIL_FRUITS.filter(test).length;
+    return `<tr><td>${label}</td><td>${here}</td><td>${canonTotal}</td></tr>`;
+  });
+  const hereTotal = DEVIL_FRUITS.length;
+  const canonGrandTotal = CANON_TOTALS.reduce((sum, [, , n]) => sum + n, 0);
+  rows.push(`<tr class="totalrow"><td>Total</td><td>${hereTotal}</td><td>${canonGrandTotal}</td></tr>`);
+  document.getElementById('countTableBody').innerHTML = rows.join('');
+}
+renderCountTable();
+
+function render(){
+  const shown = DEVIL_FRUITS.filter(matchesFilters);
+  fruitGrid.innerHTML = shown.map(f => {
+    const [typeLabel, typeClass] = typeBadge(f.type);
+    const user = f.currentUser && charById(f.currentUser);
+    const userLine = user
+      ? `<p class="fruitmeta"><span class="dot ${user.status === 'deceased' ? 'deceased' : user.status === 'alive' ? 'alive' : 'unknown'}"></span><b>Current wielder:</b> ${user.name}</p>`
+      : '';
+    const history = historySentence(f);
+    const historyLine = history ? `<p class="fruitmeta">${history}</p>` : '';
+    const originLine = f.origin ? `<p class="fruitmeta"><b>Origin:</b> ${f.origin}</p>` : '';
+    const appearance = firstAppearance(f);
+    const appearanceLine = appearance ? `<p class="fruitmeta"><b>First appeared:</b> ${appearance}</p>` : '';
+    const statusTag = STATUS_LABEL[f.status] ? `<span class="statustag">${STATUS_LABEL[f.status]}</span>` : '';
+    return `
+      <div class="fruitcard">
+        <div class="fruithead">
+          <canvas class="medallion" data-id="${f.id}"></canvas>
+          <div>
+            <h3 class="fruitname">${f.name}</h3>
+            <span class="fruittype ${typeClass}">${typeLabel}</span>
+          </div>
+        </div>
+        <p class="fruiteffect">${f.effect}</p>
+        ${userLine}
+        ${historyLine}
+        ${originLine}
+        ${appearanceLine}
+        ${statusTag}
+      </div>
+    `;
+  }).join('');
+  if (!shown.length) fruitGrid.innerHTML = '<p class="empty">No fruits match these filters.</p>';
+  fruitGrid.querySelectorAll('canvas.medallion').forEach(canvas => {
+    const fruit = DEVIL_FRUITS.find(x => x.id === canvas.dataset.id);
+    drawMedallion(canvas, fruit);
+  });
+  resultCount.textContent = `${shown.length} of ${DEVIL_FRUITS.length} fruits`;
+}
+render();
+</script>
+</body>
+</html>

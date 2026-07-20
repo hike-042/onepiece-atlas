@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Map | The Grand Line Atlas codebase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E8DCC0; --ink:#1B2A41; --brass-bright:#C99A3A; --teal:#1F5C56;
+    --rust:#8C3B26; --void:#0b1622; --void-deep:#050a11;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{ background:var(--void); color:var(--parchment); font-family:'Crimson Text', serif;
+    overflow:hidden; height:100vh; display:flex; flex-direction:column; }
+  header{ padding:16px 28px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  h1{ font-family:'Pirata One', cursive; font-size:26px; margin:0; }
+  .tagline{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#33455e; margin:0; }
+  .legend{ display:flex; gap:14px; flex-wrap:wrap; padding:10px 28px; background:var(--void-deep);
+    font-family:'JetBrains Mono', monospace; font-size:11px; border-bottom:1px solid rgba(255,255,255,0.08); }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  #graph{ flex:1; position:relative; }
+  .tip{ position:absolute; bottom:14px; left:28px; font-family:'JetBrains Mono', monospace;
+    font-size:10.5px; color:#9fb0bd; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Project Map</h1>
+    <p class="tagline">The Grand Line Atlas: its own file and import structure, as a graph</p>
+  </div>
+</header>
+
+<div class="legend">
+  <span><i class="dot" style="background:#C99A3A"></i>folder</span>
+  <span><i class="dot" style="background:#8C3B26"></i>entry / core</span>
+  <span><i class="dot" style="background:#1F5C56"></i>module</span>
+  <span><i class="dot" style="background:#33455e"></i>data</span>
+  <span><i class="dot" style="background:#6b8f8a"></i>style</span>
+  <span><i class="dot" style="background:#c9b98a"></i>doc</span>
+  <span><i class="dot" style="background:#8a6d2f;border:1px dashed #C99A3A"></i>dev script</span>
+</div>
+
+<div id="graph"></div>
+<div class="tip">drag = rotate · scroll = zoom · click a node to see its path</div>
+
+<script type="module">
+import ForceGraph3D from '3d-force-graph';
+import { NODES, EDGES } from './graph-data.js';
+
+const CATEGORY_COLORS = {
+  folder:"#C99A3A", entry:"#8C3B26", core:"#8C3B26",
+  module:"#1F5C56", data:"#33455e", style:"#6b8f8a", doc:"#c9b98a", script:"#8a6d2f",
+};
+const CATEGORY_SIZE = {
+  folder:6, entry:9, core:9, module:6, data:4.5, style:5, doc:4, script:5,
+};
+
+const nodes = NODES.map(n => ({
+  id: n.id, label: n.label, category: n.category,
+  color: CATEGORY_COLORS[n.category] || "#A67C27",
+  val: CATEGORY_SIZE[n.category] || 5,
+}));
+
+const linkColor = { contains:"rgba(232,220,192,0.18)", imports:"rgba(201,154,58,0.6)", "imports-dynamic":"rgba(201,154,58,0.35)", writes:"rgba(140,59,38,0.6)" };
+const links = EDGES.map(e => ({ source: e.source, target: e.target, type: e.type, color: linkColor[e.type] || "rgba(255,255,255,0.2)" }));
+
+const graph = ForceGraph3D()(document.getElementById('graph'))
+  .backgroundColor('#0b1622')
+  .graphData({ nodes, links })
+  .nodeLabel(n => `${n.label}\n(${n.category})`)
+  .nodeVal('val')
+  .nodeColor('color')
+  .linkColor(l => l.color)
+  .linkWidth(l => l.type === 'contains' ? 0.6 : 1.4)
+  .linkDirectionalParticles(l => l.type.startsWith('imports') ? 1 : 0)
+  .linkDirectionalParticleWidth(1.4)
+  .onNodeClick(n => {
+    // eslint-disable-next-line no-console
+    console.log('Path:', n.id);
+    alert(n.id);
+  });
+
+graph.d3Force('charge').strength(-120);
+</script>
+</body>
+</html>

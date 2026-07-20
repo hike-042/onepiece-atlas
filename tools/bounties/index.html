@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bounty Board | The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E8DCC0; --parchment-dark:#D8C9A3; --ink:#1B2A41; --ink-soft:#33455e;
+    --brass-bright:#C99A3A; --teal:#1F5C56; --rust:#8C3B26; --void:#0b1622; --void-deep:#050a11;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  .tool-nav{ display:flex; gap:8px; flex-wrap:wrap; padding:9px 28px; background:#D8C9A3;
+    border-bottom:2px solid var(--ink); font-family:'JetBrains Mono', monospace; font-size:11px; }
+  .tool-nav a{ padding:5px 11px; border:1.5px solid var(--ink); border-radius:999px; color:#33455e;
+    text-decoration:none; background:rgba(251,246,234,0.55); }
+  .tool-nav a:hover{ background:#fbf6ea; }
+  body{ background:var(--void); color:var(--parchment); font-family:'Crimson Text', serif; }
+  header{ padding:16px 28px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  h1{ font-family:'Pirata One', cursive; font-size:26px; margin:0; }
+  .tagline{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#33455e; margin:0; }
+  a.back{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--rust); text-decoration:none; }
+  a.back:hover{ text-decoration:underline; }
+
+  main{ max-width:1180px; margin:0 auto; padding:24px 24px 60px; }
+  section{ margin-bottom:40px; }
+  h2{ font-family:'Pirata One', cursive; font-size:22px; color:var(--brass-bright); margin:0 0 4px; }
+  .note{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#9fb0bd; margin:0 0 16px; line-height:1.6; }
+
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:22px;
+    position:sticky; top:0; background:var(--void); padding:14px 0; z-index:5; border-bottom:1px solid rgba(232,220,192,0.15); }
+  #search{ font-family:'Crimson Text', serif; font-size:15px; padding:8px 14px; border-radius:6px;
+    border:1.5px solid rgba(232,220,192,0.35); background:rgba(232,220,192,0.06); color:var(--parchment); min-width:220px; }
+  #search::placeholder{ color:#5c6f7d; }
+  select{ font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:8px 10px; border-radius:6px;
+    border:1.5px solid rgba(232,220,192,0.35); background:var(--void-deep); color:var(--parchment); }
+  .statuschips{ display:flex; gap:6px; }
+  .statuschip{ font-family:'JetBrains Mono', monospace; font-size:11px; padding:6px 12px; border-radius:14px;
+    border:1.5px solid rgba(232,220,192,0.3); background:transparent; color:#9fb0bd; cursor:pointer; }
+  .statuschip.active{ background:var(--brass-bright); color:var(--ink); border-color:var(--brass-bright); }
+  .count{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#5c6f7d; margin-left:auto; }
+
+  .postergrid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:16px; }
+  .poster{ background:var(--parchment); border-radius:4px; overflow:hidden; cursor:default;
+    box-shadow:0 6px 18px rgba(0,0,0,0.35); border:3px solid #6b4a2a; }
+  .poster canvas{ display:block; width:100%; height:auto; }
+
+  .rostersection{ display:flex; flex-direction:column; gap:26px; }
+  .rostergroup h3{ font-family:'JetBrains Mono', monospace; font-size:12px; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--brass-bright); margin:0 0 8px; display:flex; align-items:center; gap:8px; }
+  .statusdot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .statusdot.alive{ background:#5fbf8f; } .statusdot.deceased{ background:#c95a3a; } .statusdot.unknown{ background:#8a97a6; }
+  .rosterlist{ display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:2px 14px; }
+  .rosterrow{ font-size:14px; padding:5px 0; border-bottom:1px solid rgba(232,220,192,0.08); display:flex; justify-content:space-between; gap:8px; }
+  .rosterrow .aff{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:#9fb0bd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .empty{ font-family:'JetBrains Mono', monospace; font-size:12px; color:#5c6f7d; }
+  .ambient-backdrop{ position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<canvas class="ambient-backdrop" id="ambientBackdrop"></canvas>
+
+<header>
+  <div>
+    <h1>Bounty Board</h1>
+    <p class="tagline">Every wanted pirate, every crew, every currency figure, all in berries</p>
+  </div>
+  <a class="back" href="../../">← back to the atlas</a>
+</header>
+<nav class="tool-nav">
+  <a href="../../">🧭 Atlas</a>
+  <a href="../story-graph/">🌐 Story Graph</a>
+  <a href="../time-travel/">⏳ Time Travel</a>
+  <a href="../bounty-chart/">💰 Bounty Chart</a>
+  <a href="../route-animation/">⛵ Route Animation</a>
+  <a href="../qa/">❓ Ask the Atlas</a>
+  <a href="../devil-fruits/">🍈 Devil Fruits</a>
+  <a href="../origins/">🌳 Origin Tree</a>
+  <a href="../family-tree/">🧬 Family Tree</a>
+  <a href="../flat-map/">🗺 Flat Map</a>
+  <a href="../mural-theories/">📜 Mural Theories</a>
+</nav>
+
+<main>
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Search a name, crew, or organization…" autocomplete="off">
+    <select id="crewFilter"></select>
+    <div class="statuschips" id="statusChips"></div>
+    <span class="count" id="resultCount"></span>
+  </div>
+
+  <section>
+    <h2>Bounty Board</h2>
+    <p class="note">Original stylized poster art generated in-browser, not a reproduction of any official artwork.
+      Only characters with a recorded, sourced bounty appear here, ranked highest first.</p>
+    <div class="postergrid" id="posterGrid"></div>
+  </section>
+
+  <section>
+    <h2>Full Crew Roster</h2>
+    <p class="note">Every named character this atlas tracks, grouped by their last confirmed status.
+      "Status unknown" covers anyone whose fate the story hasn't confirmed on-page, not a claim either way.</p>
+    <div class="rostersection" id="rosterSection"></div>
+  </section>
+</main>
+
+<script type="module">
+import { CHARACTERS as ALL_CHARACTERS } from '../../src/data/characters/index.js';
+import { CREWS } from '../../src/data/crews.js';
+import { ORGANIZATIONS } from '../../src/data/organizations.js';
+import { startAmbientBackdrop } from '../../src/scene/ambientBackdrop.js';
+
+startAmbientBackdrop(document.getElementById('ambientBackdrop'));
+
+// Curated entries and their auto-fetched stub counterparts don't always
+// share an id (e.g. "luffy" vs the fetched "monkey-d-luffy"), so the
+// index.js id-based merge can't catch every duplicate. Curated entries
+// are always listed first in CHARACTERS, so keeping just the first
+// occurrence per normalized name both dedupes and prefers the richer entry.
+const seenNames = new Set();
+const CHARACTERS = ALL_CHARACTERS.filter(c => {
+  const key = c.name.toLowerCase().replace(/[^a-z]/g, '');
+  if (seenNames.has(key)) return false;
+  seenNames.add(key);
+  return true;
+});
+
+function formatBerries(n){
+  if (n >= 1e9) return `${(n / 1e9).toFixed(n % 1e9 === 0 ? 0 : 2)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+  return `${n}`;
+}
+function parseBounty(str){
+  if (!str) return null;
+  const m = str.match(/([\d,]+)\s*berries/);
+  if (!m) return null;
+  return parseInt(m[1].replace(/,/g, ''), 10);
+}
+
+const crewNames = new Set(CREWS.map(c => c.name));
+const orgNames = new Set(ORGANIZATIONS.map(o => o.name));
+const groupOptions = [...new Set(CHARACTERS.map(c => c.affiliation).filter(a => a && (crewNames.has(a) || orgNames.has(a))))].sort();
+
+const crewFilterEl = document.getElementById('crewFilter');
+crewFilterEl.innerHTML = `<option value="">All crews & organizations</option>` +
+  groupOptions.map(g => `<option value="${g}">${g}</option>`).join('');
+
+const STATUSES = [
+  { id: 'all', label: 'All' },
+  { id: 'alive', label: 'Alive' },
+  { id: 'deceased', label: 'Deceased' },
+  { id: 'unknown', label: 'Status unknown' },
+];
+let activeStatus = 'all';
+const statusChipsEl = document.getElementById('statusChips');
+statusChipsEl.innerHTML = STATUSES.map(s => `<button class="statuschip${s.id === 'all' ? ' active' : ''}" data-status="${s.id}">${s.label}</button>`).join('');
+statusChipsEl.addEventListener('click', e => {
+  const btn = e.target.closest('.statuschip');
+  if (!btn) return;
+  activeStatus = btn.dataset.status;
+  statusChipsEl.querySelectorAll('.statuschip').forEach(b => b.classList.toggle('active', b === btn));
+  render();
+});
+
+const searchEl = document.getElementById('search');
+searchEl.addEventListener('input', render);
+crewFilterEl.addEventListener('change', render);
+
+// --- poster art: original in-browser drawing, silhouette only ---
+const ROLE_ICON = {
+  captain: 'crown', swordsman: 'sword', navigator: 'compass', sniper: 'target',
+  cook: 'flame', doctor: 'cross', archaeologist: 'book', shipwright: 'wrench',
+  musician: 'note', helmsman: 'wheel',
+};
+function iconForRole(role = ''){
+  const key = role.toLowerCase();
+  for (const k in ROLE_ICON) if (key.includes(k)) return ROLE_ICON[k];
+  return 'skull';
+}
+
+/** Picks an icon from what actually makes a character distinct — their
+ *  Devil Fruit power or signature weapon — before falling back to the
+ *  generic role icon above. Keeps every poster an original drawn shape,
+ *  just a more personal one where we have the data for it. */
+function iconForCharacter(c){
+  const fruit = `${c.devilFruit?.name || ''} ${c.devilFruit?.type || ''}`.toLowerCase();
+  const weapon = (c.weapon || '').toLowerCase();
+
+  if (c.devilFruit){
+    if (/mera|magu|lava|fire|flame/.test(fruit)) return 'flame';
+    if (/hie|ice|snow|frost/.test(fruit)) return 'snowflake';
+    if (/goro|thunder|lightning|electric/.test(fruit)) return 'bolt';
+    if (/yami|dark/.test(fruit)) return 'void';
+    if (/gomu|rubber/.test(fruit)) return 'spiral';
+    if (/zoan/.test(fruit)) return 'paw';
+    return 'fruit';
+  }
+  if (weapon){
+    if (/three.?sword/.test(weapon)) return 'triswords';
+    if (/kick|leg/.test(weapon)) return 'boot';
+    if (/slingshot|kabuto/.test(weapon)) return 'slingshot';
+    if (/tact|staff|wand/.test(weapon)) return 'staff';
+    if (/unarmed|fist|hand/.test(weapon)) return 'fist';
+    if (/pistol|gun|flintlock/.test(weapon)) return 'pistol';
+    if (/spear|naginata|bisento/.test(weapon)) return 'spear';
+    if (/sword|blade|katana/.test(weapon)) return 'sword';
+  }
+  return iconForRole(c.role);
+}
+function drawIcon(ctx, kind, cx, cy, r, color){
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 3;
+  ctx.beginPath();
+  switch(kind){
+    case 'crown':
+      ctx.moveTo(cx - r, cy + r*0.4);
+      ctx.lineTo(cx - r, cy - r*0.2); ctx.lineTo(cx - r*0.5, cy + r*0.15);
+      ctx.lineTo(cx, cy - r*0.5); ctx.lineTo(cx + r*0.5, cy + r*0.15);
+      ctx.lineTo(cx + r, cy - r*0.2); ctx.lineTo(cx + r, cy + r*0.4); ctx.closePath();
+      ctx.fill(); break;
+    case 'sword':
+      ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r*0.6); ctx.moveTo(cx - r*0.5, cy + r*0.1);
+      ctx.lineTo(cx + r*0.5, cy + r*0.1); ctx.stroke(); break;
+    case 'compass':
+      ctx.arc(cx, cy, r*0.7, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy - r*0.6); ctx.lineTo(cx, cy + r*0.6); ctx.stroke(); break;
+    case 'target':
+      ctx.arc(cx, cy, r*0.7, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, r*0.3, 0, Math.PI*2); ctx.stroke(); break;
+    case 'flame':
+      ctx.moveTo(cx, cy - r); ctx.quadraticCurveTo(cx + r*0.7, cy, cx, cy + r);
+      ctx.quadraticCurveTo(cx - r*0.7, cy, cx, cy - r); ctx.fill(); break;
+    case 'cross':
+      ctx.fillRect(cx - r*0.15, cy - r*0.7, r*0.3, r*1.4);
+      ctx.fillRect(cx - r*0.7, cy - r*0.15, r*1.4, r*0.3); break;
+    case 'book':
+      ctx.strokeRect(cx - r*0.6, cy - r*0.5, r*1.2, r); ctx.beginPath();
+      ctx.moveTo(cx, cy - r*0.5); ctx.lineTo(cx, cy + r*0.5); ctx.stroke(); break;
+    case 'wrench':
+      ctx.arc(cx - r*0.3, cy - r*0.3, r*0.35, 0.6, Math.PI*1.8); ctx.stroke();
+      ctx.moveTo(cx, cy); ctx.lineTo(cx + r*0.6, cy + r*0.6); ctx.stroke(); break;
+    case 'note':
+      ctx.arc(cx - r*0.3, cy + r*0.4, r*0.25, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx, cy + r*0.4); ctx.lineTo(cx, cy - r*0.7); ctx.stroke(); break;
+    case 'wheel':
+      ctx.arc(cx, cy, r*0.7, 0, Math.PI*2); ctx.stroke();
+      for (let a = 0; a < Math.PI*2; a += Math.PI/4){
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a)*r*0.7, cy + Math.sin(a)*r*0.7); ctx.stroke();
+      } break;
+    case 'spiral':
+      for (let a = 0; a < Math.PI*3.4; a += 0.2){
+        const rr = (a / (Math.PI*3.4)) * r*0.8;
+        const x = cx + Math.cos(a)*rr, y = cy + Math.sin(a)*rr;
+        if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke(); break;
+    case 'snowflake':
+      for (let a = 0; a < Math.PI*2; a += Math.PI/3){
+        ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a)*r*0.75, cy + Math.sin(a)*r*0.75);
+        const tickAt = 0.55, tx = cx + Math.cos(a)*r*0.75*tickAt, ty = cy + Math.sin(a)*r*0.75*tickAt;
+        ctx.moveTo(tx + Math.cos(a+1.2)*r*0.18, ty + Math.sin(a+1.2)*r*0.18);
+        ctx.lineTo(tx - Math.cos(a+1.2)*r*0.18, ty - Math.sin(a+1.2)*r*0.18);
+      }
+      ctx.stroke(); break;
+    case 'bolt':
+      ctx.moveTo(cx + r*0.15, cy - r); ctx.lineTo(cx - r*0.35, cy + r*0.1); ctx.lineTo(cx + r*0.05, cy + r*0.1);
+      ctx.lineTo(cx - r*0.15, cy + r); ctx.lineTo(cx + r*0.4, cy - r*0.15); ctx.lineTo(cx + r*0.05, cy - r*0.15);
+      ctx.closePath(); ctx.fill(); break;
+    case 'void':
+      ctx.arc(cx, cy, r*0.75, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#f3ead6';
+      ctx.beginPath(); ctx.arc(cx + r*0.2, cy - r*0.15, r*0.32, 0, Math.PI*2); ctx.fill(); break;
+    case 'paw':
+      ctx.arc(cx, cy + r*0.15, r*0.4, 0, Math.PI*2); ctx.fill();
+      [[-0.5,-0.7],[-0.15,-0.95],[0.2,-0.95],[0.5,-0.7]].forEach(([ox,oy]) => {
+        ctx.beginPath(); ctx.arc(cx + ox*r, cy + oy*r*0.55, r*0.16, 0, Math.PI*2); ctx.fill();
+      }); break;
+    case 'fruit':
+      ctx.arc(cx, cy + r*0.1, r*0.6, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy - r*0.5); ctx.quadraticCurveTo(cx + r*0.3, cy - r*0.85, cx + r*0.15, cy - r*0.95);
+      ctx.stroke(); break;
+    case 'triswords':
+      [-0.5, 0, 0.5].forEach(off => {
+        ctx.moveTo(cx + off*r*0.7, cy - r); ctx.lineTo(cx + off*r*0.35, cy + r*0.6);
+      });
+      ctx.stroke(); break;
+    case 'boot':
+      ctx.moveTo(cx - r*0.25, cy - r*0.8); ctx.lineTo(cx - r*0.25, cy + r*0.25);
+      ctx.lineTo(cx + r*0.6, cy + r*0.25); ctx.lineTo(cx + r*0.6, cy - r*0.05);
+      ctx.lineTo(cx + r*0.1, cy - r*0.05); ctx.lineTo(cx + r*0.1, cy - r*0.8); ctx.closePath();
+      ctx.fill(); break;
+    case 'slingshot':
+      ctx.moveTo(cx - r*0.5, cy - r*0.8); ctx.lineTo(cx, cy + r*0.1); ctx.lineTo(cx + r*0.5, cy - r*0.8);
+      ctx.moveTo(cx, cy + r*0.1); ctx.lineTo(cx, cy + r*0.8);
+      ctx.stroke(); break;
+    case 'staff':
+      ctx.moveTo(cx, cy - r*0.4); ctx.lineTo(cx, cy + r*0.9); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy - r*0.65, r*0.28, 0, Math.PI*2); ctx.stroke(); break;
+    case 'fist':
+      ctx.arc(cx, cy, r*0.55, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#f3ead6';
+      [-0.3,0,0.3].forEach(ox => { ctx.beginPath(); ctx.arc(cx + ox*r, cy - r*0.5, r*0.14, 0, Math.PI*2); ctx.fill(); });
+      break;
+    case 'pistol':
+      ctx.fillRect(cx - r*0.6, cy - r*0.15, r*0.9, r*0.3);
+      ctx.fillRect(cx - r*0.15, cy - r*0.1, r*0.3, r*0.55); break;
+    case 'spear':
+      ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r*0.85); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx - r*0.2, cy - r*0.65);
+      ctx.lineTo(cx + r*0.2, cy - r*0.65); ctx.closePath(); ctx.fill(); break;
+    default:
+      ctx.arc(cx, cy, r*0.5, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - r*0.4, cy + r*0.7); ctx.lineTo(cx + r*0.4, cy + r*0.7); ctx.stroke();
+  }
+}
+
+/** An original ornate currency mark for the in-story "berry", drawn from
+ *  scratch as a single flourished letterform — not a reproduction of any
+ *  existing symbol or artwork. */
+function drawCurrencyGlyph(ctx, cx, cy, size, color){
+  const s = size / 32;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s, s);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  ctx.beginPath();
+  ctx.moveTo(-2, -14);
+  ctx.lineTo(-2, 14);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-2, -14);
+  ctx.quadraticCurveTo(11, -14, 11, -6);
+  ctx.quadraticCurveTo(11, 0, -2, 0);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-2, 0);
+  ctx.quadraticCurveTo(13, 0, 13, 7.5);
+  ctx.quadraticCurveTo(13, 14, -2, 14);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-2, -14);
+  ctx.quadraticCurveTo(-10, -14, -10, -19);
+  ctx.quadraticCurveTo(-10, -23, -5, -21);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-2, 14);
+  ctx.quadraticCurveTo(6, 16, 6, 21);
+  ctx.quadraticCurveTo(6, 25, 1, 23);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/** Deterministic PRNG seeded from the character id, so the "torn paper"
+ *  jitter and ink blotches below are stable across re-renders (search/
+ *  filter changes redraw every poster) instead of reshuffling each time. */
+function seededRandom(seed){
+  let s = 0;
+  for (let i = 0; i < seed.length; i++) s = (s * 31 + seed.charCodeAt(i)) >>> 0;
+  return function(){ s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
+
+/** A hand-jittered rectangle path — original "torn/aged paper edge" effect,
+ *  not a traced or reproduced texture. */
+function tornRectPath(ctx, x, y, w, h, rand, jitter, segs){
+  const pts = [];
+  for (let i = 0; i <= segs; i++) pts.push([x + (w * i) / segs, y + (rand() - 0.5) * jitter]);
+  for (let i = 1; i <= segs; i++) pts.push([x + w + (rand() - 0.5) * jitter, y + (h * i) / segs]);
+  for (let i = 1; i <= segs; i++) pts.push([x + w - (w * i) / segs, y + h + (rand() - 0.5) * jitter]);
+  for (let i = 1; i < segs; i++) pts.push([x + (rand() - 0.5) * jitter, y + h - (h * i) / segs]);
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  pts.slice(1).forEach(([px, py]) => ctx.lineTo(px, py));
+  ctx.closePath();
+}
+
+/** A small original corner flourish (quarter scroll + dot) — quadrant
+ *  is mirrored via sx/sy so the same drawing works in all four corners. */
+function drawCornerFlourish(ctx, x, y, sx, sy, color){
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(sx, sy);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(0, 14); ctx.quadraticCurveTo(0, 0, 14, 0);
+  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(4, 20); ctx.quadraticCurveTo(4, 4, 20, 4); ctx.stroke();
+  ctx.beginPath(); ctx.arc(3, 3, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+/** A plain decorative stamp/rosette — original geometry, not a reproduction
+ *  of any faction emblem — used purely to give the bottom of the poster a
+ *  "certified" look. Carries no issuing-authority text, since we only have
+ *  a confirmed bounty figure, not always a confirmed issuer. */
+function drawSeal(ctx, cx, cy, r, color){
+  ctx.strokeStyle = color; ctx.lineWidth = 1.3;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.68, 0, Math.PI * 2); ctx.stroke();
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 8){
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    ctx.lineTo(cx + Math.cos(a) * (r + 4), cy + Math.sin(a) * (r + 4));
+    ctx.stroke();
+  }
+}
+
+function drawPoster(canvas, c, amount){
+  const W = 260, H = 378;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const rand = seededRandom(c.id || c.name);
+
+  // aged, torn-edge parchment base (original texture, not a traced scan)
+  tornRectPath(ctx, 4, 4, W - 8, H - 8, seededRandom(c.id || c.name), 3, 9);
+  ctx.save();
+  ctx.clip();
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#f3ead0'); grad.addColorStop(1, '#e2d3ab');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 4; i++){
+    const bx = 20 + rand() * (W - 40), by = 20 + rand() * (H - 40), br = 10 + rand() * 22;
+    const bg = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+    bg.addColorStop(0, 'rgba(107,74,42,0.10)'); bg.addColorStop(1, 'rgba(107,74,42,0)');
+    ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 4;
+  tornRectPath(ctx, 4, 4, W - 8, H - 8, seededRandom(c.id || c.name), 3, 9);
+  ctx.stroke();
+  ctx.strokeStyle = '#a67c27'; ctx.lineWidth = 1.4; ctx.strokeRect(13, 13, W - 26, H - 26);
+  [[16, 16, 1, 1], [W - 16, 16, -1, 1], [16, H - 16, 1, -1], [W - 16, H - 16, -1, -1]]
+    .forEach(([fx, fy, sx, sy]) => drawCornerFlourish(ctx, fx, fy, sx, sy, '#a67c27'));
+
+  ctx.fillStyle = '#1B2A41';
+  ctx.textAlign = 'center';
+  ctx.font = '700 26px Georgia';
+  ctx.fillText(c.status === 'deceased' ? 'DECEASED' : 'WANTED', W / 2, 44);
+
+  // silhouette medallion
+  const cx = W / 2, cy = 130, r = 55;
+  ctx.fillStyle = 'rgba(27,42,65,0.08)';
+  ctx.beginPath(); ctx.arc(cx, cy, r + 8, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#33455e';
+  ctx.beginPath(); ctx.arc(cx, cy - 12, r * 0.42, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.7, cy + r * 0.55);
+  ctx.quadraticCurveTo(cx, cy - r * 0.1, cx + r * 0.7, cy + r * 0.55);
+  ctx.lineTo(cx + r * 0.7, cy + r);
+  ctx.lineTo(cx - r * 0.7, cy + r);
+  ctx.closePath(); ctx.fill();
+  drawIcon(ctx, iconForCharacter(c), cx, cy + r + 34, 16, '#8C3B26');
+
+  ctx.font = '700 17px Georgia';
+  ctx.fillStyle = '#1B2A41';
+  wrapText(ctx, c.name, W / 2, 214, W - 30, 19);
+
+  if (c.epithet){
+    ctx.font = 'italic 12px Georgia';
+    ctx.fillStyle = '#5c4a2f';
+    ctx.fillText(`"${c.epithet}"`, W / 2, 234);
+  }
+
+  ctx.font = 'italic 700 12px Georgia';
+  ctx.fillStyle = '#8C3B26';
+  const banner = 'DEAD OR ALIVE';
+  const bannerWidth = ctx.measureText(banner).width;
+  ctx.fillText(banner, W / 2, 251);
+  ctx.strokeStyle = '#8C3B26'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(W / 2 - bannerWidth / 2 - 22, 247); ctx.lineTo(W / 2 - bannerWidth / 2 - 6, 247); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(W / 2 + bannerWidth / 2 + 6, 247); ctx.lineTo(W / 2 + bannerWidth / 2 + 22, 247); ctx.stroke();
+
+  ctx.font = '700 22px Georgia';
+  ctx.fillStyle = '#8C3B26';
+  if (amount){
+    const amountText = formatBerries(amount);
+    const textWidth = ctx.measureText(amountText).width;
+    const symbolSize = 20, gap = 6;
+    const totalWidth = symbolSize + gap + textWidth;
+    const startX = W / 2 - totalWidth / 2;
+    drawCurrencyGlyph(ctx, startX + symbolSize / 2, 276, symbolSize, '#8C3B26');
+    ctx.textAlign = 'left';
+    ctx.fillText(amountText, startX + symbolSize + gap, 284);
+    ctx.textAlign = 'center';
+  } else {
+    ctx.fillText('unrecorded', W / 2, 284);
+  }
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#5c4a2f';
+  ctx.fillText('BERRIES', W / 2, 300);
+
+  ctx.font = '9.5px monospace';
+  ctx.fillStyle = '#33455e';
+  ctx.fillText((c.affiliation || '').toUpperCase(), W / 2, 336);
+  drawSeal(ctx, W / 2, 358, 11, 'rgba(107,74,42,0.55)');
+}
+function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = text.split(' ');
+  let line = '', lines = [];
+  words.forEach(w => {
+    const test = line ? `${line} ${w}` : w;
+    if (ctx.measureText(test).width > maxWidth && line){ lines.push(line); line = w; }
+    else line = test;
+  });
+  lines.push(line);
+  const startY = y - (lines.length - 1) * lineHeight / 2;
+  lines.forEach((l, i) => ctx.fillText(l, x, startY + i * lineHeight));
+}
+
+const bountied = CHARACTERS
+  .map(c => ({ c, amount: parseBounty(c.bounty) }))
+  .filter(x => x.amount)
+  .sort((a, b) => b.amount - a.amount);
+
+function matchesFilters(c){
+  const term = searchEl.value.trim().toLowerCase();
+  const crewVal = crewFilterEl.value;
+  if (crewVal && c.affiliation !== crewVal) return false;
+  if (activeStatus !== 'all' && (c.status || 'unknown') !== activeStatus) return false;
+  if (term){
+    const hay = [c.name, c.epithet, c.affiliation, c.role].filter(Boolean).join(' ').toLowerCase();
+    if (!hay.includes(term)) return false;
+  }
+  return true;
+}
+
+const posterGrid = document.getElementById('posterGrid');
+const rosterSection = document.getElementById('rosterSection');
+const resultCount = document.getElementById('resultCount');
+
+function render(){
+  const shownPosters = bountied.filter(x => matchesFilters(x.c));
+  posterGrid.innerHTML = '';
+  shownPosters.forEach(({ c, amount }) => {
+    const div = document.createElement('div');
+    div.className = 'poster';
+    const canvas = document.createElement('canvas');
+    div.appendChild(canvas);
+    posterGrid.appendChild(div);
+    drawPoster(canvas, c, amount);
+  });
+  if (!shownPosters.length) posterGrid.innerHTML = '<p class="empty">No bounty-recorded characters match these filters.</p>';
+
+  const shownRoster = CHARACTERS.filter(matchesFilters);
+  const groups = { alive: [], deceased: [], unknown: [] };
+  shownRoster.forEach(c => groups[c.status === 'deceased' ? 'deceased' : c.status === 'alive' ? 'alive' : 'unknown'].push(c));
+
+  const groupMeta = [
+    ['alive', 'Alive', groups.alive],
+    ['deceased', 'Deceased', groups.deceased],
+    ['unknown', 'Status unknown', groups.unknown],
+  ];
+  rosterSection.innerHTML = groupMeta.map(([key, label, list]) => `
+    <div class="rostergroup">
+      <h3><span class="statusdot ${key}"></span>${label} (${list.length})</h3>
+      <div class="rosterlist">${list.length ? list.map(c => `
+        <div class="rosterrow"><span>${c.name}${c.epithet ? ` <em>"${c.epithet}"</em>` : ''}</span><span class="aff">${c.affiliation || ''}</span></div>
+      `).join('') : '<p class="empty">None match these filters.</p>'}</div>
+    </div>
+  `).join('');
+
+  resultCount.textContent = `${shownRoster.length} of ${CHARACTERS.length} characters`;
+}
+render();
+</script>
+</body>
+</html>

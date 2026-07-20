@@ -1,0 +1,25 @@
+{
+  "name": "grand-line-atlas",
+  "version": "1.0.0",
+  "description": "Interactive WebGL atlas of the One Piece world, with a character/crew relationship graph. Fan-made, unofficial.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sync-characters": "node scripts/fetch-characters.mjs",
+    "build-story-graph": "node scripts/build-story-graph.mjs",
+    "build-knowledge": "node scripts/build-knowledge-base.mjs",
+    "graphify": "npx skills add Graphify-Labs/graphify"
+  },
+  "dependencies": {
+    "@hpcc-js/wasm-graphviz": "^1.27.0",
+    "3d-force-graph": "^1.73.4",
+    "three": "^0.185.0",
+    "three-spritetext": "^1.10.0"
+  },
+  "devDependencies": {
+    "vite": "^8.1.4"
+  }
+}

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ask the Atlas | The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E8DCC0; --ink:#1B2A41; --brass-bright:#C99A3A; --teal:#1F5C56;
+    --rust:#8C3B26; --void:#0b1622; --void-deep:#050a11;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  .tool-nav{ display:flex; gap:8px; flex-wrap:wrap; padding:9px 28px; background:#D8C9A3;
+    border-bottom:2px solid var(--ink); font-family:'JetBrains Mono', monospace; font-size:11px; }
+  .tool-nav a{ padding:5px 11px; border:1.5px solid var(--ink); border-radius:999px; color:#33455e;
+    text-decoration:none; background:rgba(251,246,234,0.55); }
+  .tool-nav a:hover{ background:#fbf6ea; }
+  body{ background:var(--void); color:var(--parchment); font-family:'Crimson Text', serif; }
+  header{ padding:16px 28px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  h1{ font-family:'Pirata One', cursive; font-size:26px; margin:0; }
+  .tagline{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#33455e; margin:0; }
+  a.back{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--rust); text-decoration:none; }
+  a.back:hover{ text-decoration:underline; }
+
+  main{ max-width:760px; margin:0 auto; padding:32px 24px 60px; }
+  .askbar{ display:flex; gap:8px; }
+  #question{ flex:1; font-family:'Crimson Text', serif; font-size:16px; padding:10px 14px; border-radius:6px;
+    border:1.5px solid rgba(232,220,192,0.35); background:rgba(232,220,192,0.06); color:var(--parchment); }
+  #question::placeholder{ color:#5c6f7d; }
+  #askBtn{ font-family:'JetBrains Mono', monospace; font-size:13px; padding:10px 20px;
+    background:var(--brass-bright); color:var(--ink); border:none; border-radius:6px; cursor:pointer; }
+
+  .examples{ display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 0; }
+  .examples button{ font-family:'JetBrains Mono', monospace; font-size:10.5px; padding:5px 11px;
+    background:transparent; color:#9fb0bd; border:1px solid rgba(232,220,192,0.25); border-radius:14px; cursor:pointer; }
+  .examples button:hover{ background:rgba(232,220,192,0.08); }
+
+  #answer{ margin-top:28px; }
+  .card{ background:rgba(232,220,192,0.05); border:1.5px solid var(--brass-bright); border-radius:8px;
+    padding:20px 22px; }
+  .card h2{ font-family:'Pirata One', cursive; font-size:20px; color:var(--brass-bright); margin:0 0 4px; }
+  .card .sub{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:#9fb0bd; margin:0 0 14px; }
+  .card ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .card li{ font-size:15px; padding:5px 0; border-bottom:1px solid rgba(232,220,192,0.08); }
+  .card li .rel{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--brass-bright); margin-left:6px; }
+  .card .path-sentences p{ font-size:16px; line-height:1.6; margin:0 0 8px; }
+  .card .path-sentences b{ color:var(--brass-bright); }
+  .card .empty, .card .hint{ font-family:'JetBrains Mono', monospace; font-size:12.5px; color:#9fb0bd; line-height:1.7; }
+  .ambient-backdrop{ position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<canvas class="ambient-backdrop" id="ambientBackdrop"></canvas>
+
+<header>
+  <div>
+    <h1>Ask the Atlas</h1>
+    <p class="tagline">Type a question about anyone or anything in the story graph, answered entirely in your browser</p>
+  </div>
+  <a class="back" href="../../">← back to the atlas</a>
+</header>
+<nav class="tool-nav">
+  <a href="../../">🧭 Atlas</a>
+  <a href="../story-graph/">🌐 Story Graph</a>
+  <a href="../time-travel/">⏳ Time Travel</a>
+  <a href="../bounty-chart/">💰 Bounty Chart</a>
+  <a href="../route-animation/">⛵ Route Animation</a>
+  <a href="../bounties/">💵 Bounty Board</a>
+  <a href="../devil-fruits/">🍈 Devil Fruits</a>
+  <a href="../origins/">🌳 Origin Tree</a>
+  <a href="../family-tree/">🧬 Family Tree</a>
+  <a href="../flat-map/">🗺 Flat Map</a>
+  <a href="../mural-theories/">📜 Mural Theories</a>
+</nav>
+
+<main>
+  <div class="askbar">
+    <input id="question" type="text" placeholder="e.g. How is Luffy connected to Whitebeard?">
+    <button id="askBtn">Ask</button>
+  </div>
+  <div class="examples" id="examples"></div>
+  <div id="answer"></div>
+</main>
+
+<script type="module">
+import { CHARACTERS } from '../../src/data/characters/index.js';
+import { startAmbientBackdrop } from '../../src/scene/ambientBackdrop.js';
+
+startAmbientBackdrop(document.getElementById('ambientBackdrop'));
+
+const modules = import.meta.glob('../../story-graph/graphify-out/graph.json', { eager: true });
+const graphPath = Object.keys(modules)[0];
+const data = graphPath ? modules[graphPath].default : null;
+
+const answerEl = document.getElementById('answer');
+const examplesEl = document.getElementById('examples');
+const questionEl = document.getElementById('question');
+
+if (!data){
+  answerEl.innerHTML = `<div class="card"><p class="hint">No story graph found yet. Run <code>npm run build-story-graph</code>, then reload this page.</p></div>`;
+} else {
+  const PREFIX_TYPE = {
+    char:'character', crew:'crew', loc:'location', saga:'saga',
+    fruit:'devilfruit', ship:'ship', org:'organization', sword:'sword',
+  };
+  const typeOf = id => PREFIX_TYPE[id.split(':')[0]] || 'character';
+
+  const nodes = data.nodes.map(n => ({ id: n.id, label: n.label, type: typeOf(n.id) }));
+  const nodeById = new Map(nodes.map(n => [n.id, n]));
+  const links = data.links.map(l => ({ source: l.source, target: l.target, relation: l.relation, context: l.context }));
+
+  const neighbors = new Map(nodes.map(n => [n.id, new Set()]));
+  const nodeLinks = new Map(nodes.map(n => [n.id, []]));
+  links.forEach(l => {
+    neighbors.get(l.source)?.add(l.target);
+    neighbors.get(l.target)?.add(l.source);
+    nodeLinks.get(l.source)?.push(l);
+    nodeLinks.get(l.target)?.push(l);
+  });
+
+  // --- alias index: full label always works, plus a character's epithet
+  // and most-distinctive name word ("Luffy" for "Monkey D. Luffy",
+  // "Whitebeard" for "Edward Newgate" via his epithet) so casual names work ---
+  const charById = new Map(CHARACTERS.map(c => [c.id, c]));
+  const aliasToNode = new Map();
+  nodes.forEach(n => {
+    aliasToNode.set(n.label.toLowerCase(), n);
+    if (n.type === 'character'){
+      const c = charById.get(n.id.split(':')[1]);
+      if (c){
+        if (c.epithet) aliasToNode.set(c.epithet.toLowerCase(), n);
+        const words = c.name.split(/\s+/).filter(w => w.replace(/\W/g, '').length > 2);
+        if (words.length) aliasToNode.set(words[words.length - 1].toLowerCase().replace(/[^a-z]/g, ''), n);
+      }
+    }
+  });
+  const aliases = [...aliasToNode.keys()].sort((a, b) => b.length - a.length);
+
+  function findEntities(question){
+    const q = ' ' + question.toLowerCase().replace(/[^a-z0-9\s]/g, ' ') + ' ';
+    const used = [];
+    const found = [];
+    for (const alias of aliases){
+      const needle = ' ' + alias + ' ';
+      const idx = q.indexOf(needle);
+      if (idx === -1) continue;
+      const start = idx + 1, end = start + alias.length;
+      if (used.some(([s, e]) => start < e && end > s)) continue;
+      used.push([start, end]);
+      const node = aliasToNode.get(alias);
+      if (!found.includes(node)) found.push(node);
+    }
+    return found;
+  }
+
+  function bfsPath(startId, endId){
+    if (startId === endId) return [startId];
+    const visited = new Set([startId]);
+    const prev = new Map();
+    const queue = [startId];
+    while (queue.length){
+      const cur = queue.shift();
+      if (cur === endId) break;
+      for (const next of neighbors.get(cur) || []){
+        if (!visited.has(next)){
+          visited.add(next);
+          prev.set(next, cur);
+          queue.push(next);
+        }
+      }
+    }
+    if (!visited.has(endId)) return null;
+    const path = [endId];
+    let cur = endId;
+    while (cur !== startId){ cur = prev.get(cur); path.push(cur); }
+    return path.reverse();
+  }
+
+  function linkLabel(link, node){
+    const s = link.source.id ?? link.source, t = link.target.id ?? link.target;
+    const otherId = s === node.id ? t : s;
+    const other = nodeById.get(otherId);
+    if (!other) return null;
+    return { other, relation: link.relation, context: link.context };
+  }
+
+  function renderSingle(node){
+    const rels = (nodeLinks.get(node.id) || []).map(l => linkLabel(l, node)).filter(Boolean);
+    return `
+      <div class="card">
+        <h2>${node.label}</h2>
+        <p class="sub">${node.type.toUpperCase()} · ${rels.length} connection${rels.length === 1 ? '' : 's'}</p>
+        ${rels.length ? `<ul>${rels.map(r => `<li>${r.other.label}<span class="rel">${r.relation}${r.context && r.context !== r.relation ? ': ' + r.context : ''}</span></li>`).join('')}</ul>` : '<p class="empty">No recorded connections.</p>'}
+      </div>`;
+  }
+
+  // Each relation reads differently depending on which direction the path
+  // actually walks it (e.g. "has_member" was recorded crew -> character,
+  // but a path might traverse it character -> crew) — so every relation
+  // gets a forward phrase and a reverse phrase rather than one fixed arrow.
+  function clauseFor(relation, forwardDir, fromLabel, toLabel, context){
+    switch (relation){
+      case 'related_to':
+        return context ? `<b>${fromLabel}</b> is related to <b>${toLabel}</b> (${context})` : `<b>${fromLabel}</b> is related to <b>${toLabel}</b>`;
+      case 'has_member':
+        return forwardDir ? `<b>${fromLabel}</b> counts <b>${toLabel}</b> as a member` : `<b>${fromLabel}</b> is a member of <b>${toLabel}</b>`;
+      case 'affiliated_with':
+        return forwardDir ? `<b>${fromLabel}</b> counts <b>${toLabel}</b> as an affiliate` : `<b>${fromLabel}</b> is affiliated with <b>${toLabel}</b>`;
+      case 'eats':
+        return forwardDir ? `<b>${fromLabel}</b> has eaten the <b>${toLabel}</b>` : `<b>${fromLabel}</b> is the Devil Fruit eaten by <b>${toLabel}</b>`;
+      case 'formerly_ate':
+        return forwardDir ? `<b>${fromLabel}</b> formerly ate the <b>${toLabel}</b>` : `<b>${fromLabel}</b> is the Devil Fruit formerly eaten by <b>${toLabel}</b>`;
+      case 'sails_on':
+        return forwardDir ? `<b>${fromLabel}</b> sails aboard the <b>${toLabel}</b>` : `<b>${fromLabel}</b> is sailed by <b>${toLabel}</b>`;
+      case 'led_by':
+        return forwardDir ? `<b>${fromLabel}</b> is led by <b>${toLabel}</b>` : `<b>${fromLabel}</b> leads <b>${toLabel}</b>`;
+      case 'wields':
+        return forwardDir ? `<b>${fromLabel}</b> wields the <b>${toLabel}</b>` : `<b>${fromLabel}</b> is wielded by <b>${toLabel}</b>`;
+      case 'part_of_saga':
+        return forwardDir ? `<b>${fromLabel}</b> is part of the <b>${toLabel}</b>` : `<b>${fromLabel}</b> includes <b>${toLabel}</b>`;
+      case 'appears_at':
+        return forwardDir ? `<b>${fromLabel}</b> appears at <b>${toLabel}</b>` : `<b>${fromLabel}</b> is where <b>${toLabel}</b> appears`;
+      case 'route_to':
+        return `<b>${fromLabel}</b> connects by sea to <b>${toLabel}</b>`;
+      case 'followed_by':
+        return forwardDir ? `<b>${fromLabel}</b> is followed by <b>${toLabel}</b>` : `<b>${fromLabel}</b> follows <b>${toLabel}</b>`;
+      default:
+        return `<b>${fromLabel}</b> connects to <b>${toLabel}</b>`;
+    }
+  }
+
+  function renderPath(a, b){
+    const path = bfsPath(a.id, b.id);
+    if (!path){
+      return `<div class="card"><h2>${a.label} ↔ ${b.label}</h2><p class="empty">No connection found between these two in the graph.</p></div>`;
+    }
+    const sentences = [];
+    for (let i = 0; i < path.length - 1; i++){
+      const fromId = path[i], toId = path[i + 1];
+      const fromNode = nodeById.get(fromId), toNode = nodeById.get(toId);
+      const link = nodeLinks.get(fromId).find(l => {
+        const s = l.source.id ?? l.source, t = l.target.id ?? l.target;
+        return (s === fromId && t === toId) || (t === fromId && s === toId);
+      });
+      const relation = link ? link.relation : 'related_to';
+      const forwardDir = link ? (link.source.id ?? link.source) === fromId : true;
+      const context = link && link.context && link.context !== relation ? link.context : null;
+      sentences.push(`<p>${clauseFor(relation, forwardDir, fromNode.label, toNode.label, context)}.</p>`);
+    }
+    return `
+      <div class="card">
+        <h2>${a.label} ↔ ${b.label}</h2>
+        <p class="sub">${path.length - 1} hop${path.length - 1 === 1 ? '' : 's'} apart</p>
+        <div class="path-sentences">${sentences.join('')}</div>
+      </div>`;
+  }
+
+  function answer(question){
+    if (!question.trim()){
+      answerEl.innerHTML = '';
+      return;
+    }
+    const entities = findEntities(question);
+    if (entities.length === 0){
+      answerEl.innerHTML = `<div class="card"><p class="hint">Couldn't find a name from the story graph in that question.
+        Try a character, crew, or place name, e.g. "Luffy", "Whitebeard Pirates", "Wano Country".</p></div>`;
+      return;
+    }
+    if (entities.length === 1){
+      answerEl.innerHTML = renderSingle(entities[0]);
+      return;
+    }
+    answerEl.innerHTML = renderPath(entities[0], entities[1]) +
+      (entities.length > 2 ? `<p class="hint" style="margin-top:10px;">(also mentioned: ${entities.slice(2).map(e => e.label).join(', ')})</p>` : '');
+  }
+
+  const EXAMPLES = [
+    'How is Luffy connected to Whitebeard?',
+    'Who is in the Straw Hat Pirates?',
+    'What devil fruit does Blackbeard have?',
+    'How is Zoro connected to Mihawk?',
+  ];
+  examplesEl.innerHTML = EXAMPLES.map(q => `<button type="button">${q}</button>`).join('');
+  examplesEl.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      questionEl.value = btn.textContent;
+      answer(btn.textContent);
+    });
+  });
+
+  document.getElementById('askBtn').addEventListener('click', () => answer(questionEl.value));
+  questionEl.addEventListener('keydown', e => { if (e.key === 'Enter') answer(questionEl.value); });
+}
+</script>
+</body>
+</html>

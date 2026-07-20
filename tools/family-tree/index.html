@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Tree | The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E8DCC0; --ink:#1B2A41; --ink-soft:#33455e;
+    --brass-bright:#C99A3A; --teal:#1F5C56; --rust:#8C3B26; --void:#0b1622;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;height:100%;}
+  .tool-nav{ display:flex; gap:8px; flex-wrap:wrap; padding:9px 24px; background:#D8C9A3;
+    border-bottom:2px solid var(--ink); font-family:'JetBrains Mono', monospace; font-size:11px; position:relative; z-index:4; }
+  .tool-nav a{ padding:5px 11px; border:1.5px solid var(--ink); border-radius:999px; color:#33455e;
+    text-decoration:none; background:rgba(251,246,234,0.55); }
+  .tool-nav a:hover{ background:#fbf6ea; }
+  body{ background:var(--void); color:var(--parchment); font-family:'Crimson Text', serif; overflow:hidden; }
+  header{ padding:14px 24px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px; position:relative; z-index:4; }
+  h1{ font-family:'Pirata One', cursive; font-size:24px; margin:0; }
+  .tagline{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:#33455e; margin:0; }
+  a.back{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--rust); text-decoration:none; }
+  a.back:hover{ text-decoration:underline; }
+
+  #stage{ position:relative; width:100%; height:calc(100% - 60px); }
+  canvas.ambient-backdrop{ position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+  #viewport{ position:absolute; inset:0; z-index:1; overflow:hidden; cursor:grab; }
+  #viewport.dragging{ cursor:grabbing; }
+  #canvasLayer{ position:absolute; top:0; left:0; transform-origin:0 0; }
+  #canvasLayer svg{ display:block; }
+
+  #canvasLayer .node{ cursor:pointer; }
+  #canvasLayer .node:hover polygon, #canvasLayer .node:hover ellipse{ stroke-width:2.5; }
+  #canvasLayer .node.match polygon{ stroke:#2f8f5f !important; stroke-width:3 !important; }
+
+  .loading{ position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', monospace; font-size:13px; color:#9fb0bd; }
+
+  .toolbar{ position:absolute; top:14px; left:14px; z-index:3; display:flex; gap:8px; flex-wrap:wrap; max-width:calc(100% - 28px); }
+  #search{ font-family:'Crimson Text', serif; font-size:14px; padding:7px 12px; border-radius:6px;
+    border:1.5px solid rgba(232,220,192,0.35); background:rgba(11,22,34,0.85); color:var(--parchment); min-width:200px; }
+  #search::placeholder{ color:#5c6f7d; }
+
+  #legend{ position:absolute; top:60px; left:14px; z-index:3; background:rgba(11,22,34,0.9);
+    border:1.5px solid var(--brass-bright); border-radius:8px; padding:12px 14px; max-width:220px; max-height:calc(100% - 130px); overflow-y:auto; }
+  #legend h3{ font-family:'Pirata One', cursive; font-size:14px; margin:0 0 8px; color:var(--brass-bright); }
+  .legrow{ display:flex; align-items:center; gap:8px; font-size:12px; padding:3px 0; cursor:pointer; user-select:none; }
+  .legrow.off{ opacity:0.35; }
+  .legdot{ width:11px; height:11px; border-radius:50%; flex:none; }
+  .leghint{ font-family:'JetBrains Mono', monospace; font-size:9.5px; color:#5c6f7d; margin-top:6px; }
+
+  .zoomctl{ position:absolute; bottom:14px; right:14px; z-index:3; display:flex; flex-direction:column; gap:6px; }
+  .zoomctl button{ width:32px; height:32px; border-radius:6px; border:1.5px solid var(--brass-bright);
+    background:rgba(11,22,34,0.9); color:var(--parchment); font-size:16px; cursor:pointer; }
+  .zoomctl button:hover{ background:var(--brass-bright); color:var(--ink); }
+
+  #infoPanel{ position:absolute; top:14px; right:14px; z-index:3; width:250px; max-height:calc(100% - 28px);
+    overflow-y:auto; background:rgba(11,22,34,0.94);
+    border:2px solid var(--brass-bright); border-radius:8px; padding:14px 16px; display:none; }
+  #infoPanel.open{ display:block; }
+  #infoPanel .close{ position:absolute; top:6px; right:8px; background:none; border:none; color:var(--parchment); font-size:16px; cursor:pointer; }
+  #infoPanel h2{ font-family:'Pirata One', cursive; font-size:16px; margin:0 10px 8px 0; }
+  #infoPanel .sub{ font-family:'JetBrains Mono', monospace; font-size:9.5px; color:#9fb0bd; margin:0 0 10px; }
+  #infoPanel ul{ list-style:none; margin:0; padding:0; }
+  #infoPanel li{ font-size:12.5px; padding:4px 0; border-top:1px dashed rgba(232,220,192,0.15); }
+  #infoPanel li:first-child{ border-top:none; }
+  #infoPanel .reltag{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; }
+
+  .tip{ position:absolute; bottom:14px; left:14px; z-index:3; font-family:'JetBrains Mono', monospace; font-size:10px; color:#5c6f7d; max-width:400px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Family Tree</h1>
+    <p class="tagline">Every tracked bond across 100+ characters, laid out by Graphviz: real relations only, no invented lore</p>
+  </div>
+  <a class="back" href="../../">← back to the atlas</a>
+</header>
+<nav class="tool-nav">
+  <a href="../../">🧭 Atlas</a>
+  <a href="../story-graph/">🌐 Story Graph</a>
+  <a href="../time-travel/">⏳ Time Travel</a>
+  <a href="../bounty-chart/">💰 Bounty Chart</a>
+  <a href="../route-animation/">⛵ Route Animation</a>
+  <a href="../qa/">❓ Ask the Atlas</a>
+  <a href="../bounties/">💵 Bounty Board</a>
+  <a href="../devil-fruits/">🍈 Devil Fruits</a>
+  <a href="../origins/">🌳 Origin Tree</a>
+  <a href="../flat-map/">🗺 Flat Map</a>
+  <a href="../mural-theories/">📜 Mural Theories</a>
+</nav>
+
+<div id="stage">
+  <canvas class="ambient-backdrop" id="ambientBackdrop"></canvas>
+  <div class="loading" id="loading">Laying out the family tree…</div>
+  <div id="viewport">
+    <div id="canvasLayer"></div>
+  </div>
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Search a character…" autocomplete="off">
+  </div>
+  <div id="legend">
+    <h3>Relationship</h3>
+    <div id="legendRows"></div>
+    <p class="leghint">Click a type to hide/show it</p>
+  </div>
+  <div class="zoomctl">
+    <button id="zoomIn" aria-label="Zoom in">+</button>
+    <button id="zoomOut" aria-label="Zoom out">−</button>
+    <button id="zoomReset" aria-label="Reset view">⟲</button>
+  </div>
+  <div id="infoPanel">
+    <button class="close" id="infoPanelClose">&times;</button>
+    <h2 id="infoTitle"></h2>
+    <p class="sub" id="infoSub"></p>
+    <ul id="infoList"></ul>
+  </div>
+  <div class="tip">drag = pan · scroll = zoom · click a name for their full relation list</div>
+</div>
+
+<script type="module">
+import { Graphviz } from '@hpcc-js/wasm-graphviz';
+import { CHARACTERS as ALL_CHARACTERS } from '../../src/data/characters/index.js';
+import { startAmbientBackdrop } from '../../src/scene/ambientBackdrop.js';
+
+startAmbientBackdrop(document.getElementById('ambientBackdrop'));
+
+// Same curated-vs-stub name collision as every other tool page this
+// session; dedupe by normalized name, keeping the curated entry.
+const seenNames = new Set();
+const CHARACTERS = ALL_CHARACTERS.filter(c => {
+  const key = c.name.toLowerCase().replace(/[^a-z]/g, '');
+  if (seenNames.has(key)) return false;
+  seenNames.add(key);
+  return true;
+});
+const charById = new Map(CHARACTERS.map(c => [c.id, c]));
+
+/** Every `related` entry in the data is free-text ("adoptive mother",
+ *  "rival and former trainer", "installed him as Wano's puppet shogun")
+ *  rather than a fixed category — so this classifies each one into a
+ *  broad relationship type, checked in priority order (a link matching
+ *  several keywords gets whichever category is listed first below).
+ *  The familial test is anchored to the START of the string (with a
+ *  small set of allowed modifiers) so narrative asides like "tried to
+ *  force him into marriage with her daughter" don't get misread as an
+ *  actual parent/child bond just because "daughter" appears in them. */
+const CATEGORIES = [
+  { id:'familial', label:'Familial', color:'#7b8db8', test:/^(?:biological |adoptive |adopted |step |half[- ]|sworn |late |elder |younger |twin )?(father|mother|son|daughter|brother|sister|grandfather|grandmother|grandson|granddaughter|wife|husband)\b/i },
+  { id:'adoptive', label:'Adoptive', color:'#b39ddb', test:/adopt|father figure|raised (him|her|and)|rescued and raised/i },
+  { id:'crush', label:'One-Way Crush', color:'#e6a8c0', test:/crush|deeply attached|infatuat|force.*marriage|nursed him back to health/i },
+  { id:'apprentice', label:'Apprentice / Mentor', color:'#6fb3ac', test:/mentor|train|taught|dojo|apprentice|tutor/i },
+  { id:'lineage', label:'Devil Fruit Lineage', color:'#8fae5c', test:/devil fruit legacy|inherited his devil fruit|shares his devil fruit/i },
+  { id:'strawhat', label:'Straw Hat Crewmate', color:'#d18f4a', test:/^__strawhat__$/ },
+  { id:'crewmate', label:'Crewmate', color:'#e0b158', test:/crewmate|first mate|\bcaptain\b|navigator|crew member|\bmember\b/i },
+  { id:'work', label:'Work Relation', color:'#4fa89f', test:/subordinate|double agent|supplied|allied|co-founder|officer|\bally\b/i },
+  { id:'rivalry', label:'Rivalry', color:'#d1704f', test:/rival|betrayed|defeated/i },
+  { id:'historical', label:'Historical Event', color:'#8a97a6', test:/./ }, // fallback
+];
+const CATEGORY_BY_ID = new Map(CATEGORIES.map(c => [c.id, c]));
+
+function classify(relType, sourceChar, targetChar){
+  const bothStrawHat = sourceChar?.affiliation === 'Straw Hat Pirates' && targetChar?.affiliation === 'Straw Hat Pirates';
+  for (const cat of CATEGORIES){
+    if (cat.id === 'strawhat') continue;
+    if (cat.test.test(relType)) {
+      if (cat.id === 'crewmate' && bothStrawHat) return 'strawhat';
+      return cat.id;
+    }
+  }
+  return 'historical';
+}
+
+// which categories describe a family-tree-shaped bond (blood, adoption,
+// devil fruit legacy) — these get a directed arrow and drive the
+// top-to-bottom generational layout; everything else is drawn as a
+// connecting line that doesn't force a rank ("constraint=false" below).
+const TREE_CATS = new Set(['familial', 'adoptive', 'lineage']);
+
+function inferDirection(relType){
+  const s = relType.toLowerCase();
+  if (/\bgrandson\b|\bgranddaughter\b|\bson\b|\bdaughter\b/.test(s)) return 'child';
+  if (/\bgrandfather\b|\bgrandmother\b|\bfather\b|\bmother\b/.test(s)) return 'parent';
+  if (/\bbrother\b|\bsister\b|\bsibling\b/.test(s)) return 'sibling';
+  if (/\bwife\b|\bhusband\b|\bspouse\b/.test(s)) return 'spouse';
+  if (/inherited his devil fruit|shares his devil fruit|devil fruit legacy/.test(s)) return 'lineage-parent';
+  if (/adopt/.test(s)) return /\bson\b|\bdaughter\b/.test(s) ? 'child' : 'parent';
+  return 'unknown';
+}
+
+// --- build every link from character.related entries ---
+// Reciprocal declarations (Luffy: "grandfather" about Garp; Garp separately:
+// "grandson" about Luffy) are common and each file reads fine on its own, but
+// worded differently on each side they'd otherwise slip past a same-text-only
+// dedupe and draw the same bond twice. Keying on just the pair of people (first
+// direction encountered wins) collapses that regardless of wording.
+const nodeIds = new Set();
+const links = [];
+const seenPairs = new Set();
+CHARACTERS.forEach(c => {
+  (c.related || []).forEach(rel => {
+    const other = charById.get(rel.id);
+    if (!other) return;
+    const pairKey = [c.id, rel.id].sort().join('|');
+    if (seenPairs.has(pairKey)) return;
+    seenPairs.add(pairKey);
+    nodeIds.add(c.id);
+    nodeIds.add(rel.id);
+    links.push({ source: c.id, target: rel.id, relType: rel.type, category: classify(rel.type, c, other) });
+  });
+});
+const neighbors = new Map();
+links.forEach(l => {
+  if (!neighbors.has(l.source)) neighbors.set(l.source, []);
+  if (!neighbors.has(l.target)) neighbors.set(l.target, []);
+  neighbors.get(l.source).push({ id: l.target, rel: l });
+  neighbors.get(l.target).push({ id: l.source, rel: l });
+});
+
+const STATUS_COLOR = { alive:'#2f8f5f', deceased:'#a7422a' };
+
+function esc(s){
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function dotStr(s){
+  return '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+}
+
+// --- group real characters into their real crew/organization affiliation
+//     (only clusters of 2+ get a visible box; singletons float free) ---
+const byAffiliation = new Map();
+[...nodeIds].forEach(id => {
+  const c = charById.get(id);
+  const aff = c.affiliation || null;
+  if (!aff) return;
+  if (!byAffiliation.has(aff)) byAffiliation.set(aff, []);
+  byAffiliation.get(aff).push(id);
+});
+
+// Only family/adoptive/lineage edges give `dot` real rank information —
+// everyone else (crew, rivalry, mentorship) is constraint=false, so most
+// of the cast would otherwise be rankless leaves that `dot` piles into one
+// wide, shallow row. Real affiliation membership (already shown as the
+// cluster box) doubles as a second, honest source of hierarchy: within
+// each crew/org, one member with a leadership-sounding role anchors the
+// rest via invisible, unlabeled edges — they exist only to give `dot` a
+// rank to build from, the same trick Graphviz's own `unflatten` tool
+// uses ("inserts invisible edges... to improve layout compaction").
+const LEADER_ROLE = /captain|admiral|king|queen|emperor|shogun|director|governor|founder|leader/i;
+function pickAnchor(ids){
+  const leader = ids.find(id => LEADER_ROLE.test(charById.get(id).role || ''));
+  return leader || ids[0];
+}
+
+function buildDot(){
+  const lines = [];
+  lines.push('digraph FamilyTree {');
+  lines.push('  rankdir=TB; bgcolor="transparent"; splines=true; nodesep=0.3; ranksep=0.5; pack=true; packmode="array_u";');
+  lines.push('  node [fontname="Georgia,serif", shape=box, style="rounded,filled", fillcolor="#E8DCC0", margin="0.13,0.09"];');
+  lines.push('  edge [fontname="Courier New,monospace"];');
+
+  const placed = new Set();
+  const anchorEdges = [];
+  [...byAffiliation.entries()].forEach(([aff, ids], i) => {
+    if (ids.length < 2) return;
+    lines.push(`  subgraph cluster_${i} {`);
+    lines.push(`    label=${dotStr(aff)}; fontname="Georgia,serif"; fontsize=12; fontcolor="#C99A3A"; color="#5c6f7d55"; style="rounded"; margin=14;`);
+    ids.forEach(id => {
+      lines.push(nodeLine(id));
+      placed.add(id);
+    });
+    lines.push('  }');
+    const anchor = pickAnchor(ids);
+    ids.forEach(id => { if (id !== anchor) anchorEdges.push([anchor, id]); });
+  });
+  [...nodeIds].forEach(id => {
+    if (!placed.has(id)) lines.push(nodeLine(id));
+  });
+
+  anchorEdges.forEach(([from, to]) => {
+    lines.push(`  ${dotStr(from)} -> ${dotStr(to)} [style=invis, constraint=true, weight=0.2];`);
+  });
+
+  links.forEach(l => {
+    const cat = l.category;
+    const style = CATEGORY_BY_ID.get(cat);
+    let from = l.source, to = l.target, directed = false, constraint = false, penwidth = 1.4, dash = 'solid';
+    if (TREE_CATS.has(cat)) {
+      const dir = inferDirection(l.relType);
+      if (dir === 'parent' || dir === 'lineage-parent') { from = l.target; to = l.source; directed = true; constraint = true; }
+      else if (dir === 'child') { from = l.source; to = l.target; directed = true; constraint = true; }
+      if (cat === 'adoptive') dash = 'dashed';
+      if (cat === 'lineage') dash = 'dotted';
+      penwidth = 1.8;
+    } else if (cat === 'rivalry') dash = 'dashed';
+    else if (cat === 'crush' || cat === 'historical') dash = 'dotted';
+    lines.push(`  ${dotStr(from)} -> ${dotStr(to)} [class=${dotStr('cat-' + cat)}, color=${dotStr(style.color)}, ` +
+      `penwidth=${penwidth}, style=${dash}, dir=${directed ? 'forward' : 'none'}, constraint=${constraint}, ` +
+      `tooltip=${dotStr(l.relType)}, arrowsize=0.8];`);
+  });
+
+  lines.push('}');
+  return lines.join('\n');
+}
+
+function nodeLine(id){
+  const c = charById.get(id);
+  const subtitle = c.epithet || c.affiliation || c.role || '';
+  const borderColor = STATUS_COLOR[c.status] || '#8a97a6';
+  const label = subtitle
+    ? `<<FONT POINT-SIZE="12" COLOR="#1B2A41">${esc(c.name)}</FONT><BR/><FONT POINT-SIZE="8.5" COLOR="#5c4a2f">${esc(subtitle)}</FONT>>`
+    : `<<FONT POINT-SIZE="12" COLOR="#1B2A41">${esc(c.name)}</FONT>>`;
+  return `  ${dotStr(id)} [label=${label}, color=${dotStr(borderColor)}, penwidth=1.6, tooltip=${dotStr(c.status || 'unknown')}];`;
+}
+
+// --- legend: toggle categories on/off via CSS class visibility ---
+const activeCategories = new Set(CATEGORIES.map(c => c.id));
+const legendRows = document.getElementById('legendRows');
+legendRows.innerHTML = CATEGORIES.map(c => `
+  <div class="legrow" data-cat="${c.id}"><span class="legdot" style="background:${c.color}"></span>${c.label}</div>
+`).join('');
+legendRows.addEventListener('click', e => {
+  const row = e.target.closest('.legrow');
+  if (!row) return;
+  const id = row.dataset.cat;
+  if (activeCategories.has(id)) activeCategories.delete(id); else activeCategories.add(id);
+  row.classList.toggle('off', !activeCategories.has(id));
+  applyCategoryVisibility();
+});
+function applyCategoryVisibility(){
+  CATEGORIES.forEach(c => {
+    canvasLayer.querySelectorAll('.cat-' + c.id).forEach(el => {
+      el.style.display = activeCategories.has(c.id) ? '' : 'none';
+    });
+  });
+}
+
+// --- info panel ---
+const infoPanel = document.getElementById('infoPanel');
+const infoTitle = document.getElementById('infoTitle');
+const infoSub = document.getElementById('infoSub');
+const infoList = document.getElementById('infoList');
+document.getElementById('infoPanelClose').addEventListener('click', () => infoPanel.classList.remove('open'));
+
+function showInfo(id){
+  const c = charById.get(id);
+  if (!c) return;
+  const rels = neighbors.get(id) || [];
+  infoTitle.textContent = c.name;
+  infoSub.textContent = `${(c.status || 'unknown').toUpperCase()} · ${rels.length} connection${rels.length === 1 ? '' : 's'}`;
+  infoList.innerHTML = rels.map(({ id: nid, rel }) => {
+    const other = charById.get(nid);
+    const cat = CATEGORY_BY_ID.get(rel.category);
+    return `<li><span class="reltag" style="background:${cat.color}"></span><b>${other.name}</b>: ${rel.relType}</li>`;
+  }).join('') || '<li>No recorded connections.</li>';
+  infoPanel.classList.add('open');
+}
+
+// --- pan/zoom ---
+const viewport = document.getElementById('viewport');
+const canvasLayer = document.getElementById('canvasLayer');
+const view = { scale: 1, x: 0, y: 0 };
+let svgW = 0, svgH = 0;
+let centroid = { x: 0, y: 0 };
+
+// Every node's own getBBox() is in Graphviz's flipped local coordinate
+// space, not the SVG's root space — see focusNode() below for why getCTM()
+// is needed to carry a point through that ancestor transform correctly.
+function nodeCenterInRootSpace(el){
+  const bbox = el.getBBox();
+  const ctm = el.getCTM();
+  const pt = svgEl.createSVGPoint();
+  pt.x = bbox.x + bbox.width / 2;
+  pt.y = bbox.y + bbox.height / 2;
+  return pt.matrixTransform(ctm);
+}
+function computeCentroid(){
+  const els = canvasLayer.querySelectorAll('.node');
+  if (!els.length) return { x: svgW / 2, y: svgH / 2 };
+  let sx = 0, sy = 0;
+  els.forEach(el => { const p = nodeCenterInRootSpace(el); sx += p.x; sy += p.y; });
+  return { x: sx / els.length, y: sy / els.length };
+}
+
+function applyTransform(){
+  canvasLayer.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+}
+function clampScale(s){ return Math.min(4, Math.max(0.05, s)); }
+function resetView(){
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  // Fitting the *entire* 100+ node graph into the window would shrink every
+  // label past reading size. Instead, fill the window at a legible floor
+  // scale, centered on where nodes are actually densest, and let pan/zoom
+  // reach the rest — the same tradeoff any big-diagram tool (Miro, Figma,
+  // Google Maps) makes rather than "zoom to fit everything."
+  const fitScale = Math.min(vw / svgW, vh / svgH);
+  const s = clampScale(Math.max(fitScale, 0.85));
+  view.scale = s;
+  view.x = vw / 2 - centroid.x * s;
+  view.y = vh / 2 - centroid.y * s;
+  applyTransform();
+}
+function zoomBy(factor, cx, cy){
+  const newScale = clampScale(view.scale * factor);
+  const wx = (cx - view.x) / view.scale, wy = (cy - view.y) / view.scale;
+  view.scale = newScale;
+  view.x = cx - wx * newScale;
+  view.y = cy - wy * newScale;
+  applyTransform();
+}
+document.getElementById('zoomIn').addEventListener('click', () => zoomBy(1.3, viewport.clientWidth / 2, viewport.clientHeight / 2));
+document.getElementById('zoomOut').addEventListener('click', () => zoomBy(1 / 1.3, viewport.clientWidth / 2, viewport.clientHeight / 2));
+document.getElementById('zoomReset').addEventListener('click', resetView);
+
+let dragging = false, dragStart = null, moved = false;
+viewport.addEventListener('mousedown', e => {
+  dragging = true; moved = false;
+  dragStart = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y };
+  viewport.classList.add('dragging');
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+  view.x = dragStart.vx + dx;
+  view.y = dragStart.vy + dy;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => { dragging = false; viewport.classList.remove('dragging'); });
+viewport.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = viewport.getBoundingClientRect();
+  zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - rect.left, e.clientY - rect.top);
+}, { passive: false });
+
+viewport.addEventListener('click', e => {
+  if (moved) return;
+  const g = e.target.closest('.node');
+  if (!g) return;
+  const title = g.querySelector('title');
+  if (!title) return;
+  showInfo(title.textContent.trim());
+});
+
+function focusNode(id){
+  const el = [...canvasLayer.querySelectorAll('.node')].find(n => n.querySelector('title')?.textContent.trim() === id);
+  if (!el) return;
+  canvasLayer.querySelectorAll('.node.match').forEach(n => n.classList.remove('match'));
+  el.classList.add('match');
+  // Graphviz wraps the whole drawing in a flipped <g transform="...">, so a
+  // node's own getBBox() is in its *local* space, not the SVG's root/viewBox
+  // space. getCTM() carries the bbox center through that ancestor transform
+  // so it lines up with the coordinates canvasLayer's own pan/zoom uses.
+  const bbox = el.getBBox();
+  const ctm = el.getCTM();
+  const pt = svgEl.createSVGPoint();
+  pt.x = bbox.x + bbox.width / 2;
+  pt.y = bbox.y + bbox.height / 2;
+  const centerPt = pt.matrixTransform(ctm);
+  const cx = centerPt.x, cy = centerPt.y;
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  const targetScale = clampScale(Math.max(view.scale, 1.1));
+  view.scale = targetScale;
+  view.x = vw / 2 - cx * targetScale;
+  view.y = vh / 2 - cy * targetScale;
+  applyTransform();
+}
+
+// --- search ---
+const searchEl = document.getElementById('search');
+searchEl.addEventListener('input', () => {
+  const term = searchEl.value.trim().toLowerCase();
+  if (!term) return;
+  const match = [...nodeIds].map(id => charById.get(id)).find(c => c.name.toLowerCase().includes(term));
+  if (!match) return;
+  focusNode(match.id);
+  showInfo(match.id);
+});
+
+// --- render ---
+const graphviz = await Graphviz.load();
+const dotSource = buildDot();
+// `dot`'s strict top-down ranks treat most of the cast as rankless leaves
+// (most bonds here are peer-level crew/rivalry/mentorship, not hierarchy),
+// which piles everyone into one very wide, shallow row — tried it, and even
+// anchoring each crew/org to a leader node didn't fix the shape, since the
+// data's real hierarchies are only 1-2 levels deep. `fdp` (force-directed)
+// gives a properly 2D, legible spread instead.
+const rendered = graphviz.fdp(dotSource);
+const svgMarkup = typeof rendered?.then === 'function' ? await rendered : rendered;
+canvasLayer.innerHTML = svgMarkup;
+const svgEl = canvasLayer.querySelector('svg');
+const viewBox = svgEl.getAttribute('viewBox').split(/\s+/).map(Number);
+svgW = viewBox[2]; svgH = viewBox[3];
+svgEl.removeAttribute('width');
+svgEl.removeAttribute('height');
+svgEl.style.width = svgW + 'px';
+svgEl.style.height = svgH + 'px';
+centroid = computeCentroid();
+document.getElementById('loading').style.display = 'none';
+resetView();
+window.addEventListener('resize', resetView);
+
+// Deep link from the main atlas's character dossier: ?char=<id> focuses
+// and opens the info panel for that character on load, same as typing
+// their name into the search box above.
+const deepLinkId = new URLSearchParams(location.search).get('char');
+if (deepLinkId && charById.has(deepLinkId)){
+  focusNode(deepLinkId);
+  showInfo(deepLinkId);
+}
+</script>
+</body>
+</html>

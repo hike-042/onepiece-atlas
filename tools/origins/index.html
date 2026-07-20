@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Origin Tree | The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E8DCC0; --parchment-dark:#D8C9A3; --ink:#1B2A41; --ink-soft:#33455e;
+    --brass-bright:#C99A3A; --teal:#1F5C56; --rust:#8C3B26; --void:#0b1622; --void-deep:#050a11;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  .tool-nav{ display:flex; gap:8px; flex-wrap:wrap; padding:9px 28px; background:#D8C9A3;
+    border-bottom:2px solid var(--ink); font-family:'JetBrains Mono', monospace; font-size:11px; }
+  .tool-nav a{ padding:5px 11px; border:1.5px solid var(--ink); border-radius:999px; color:#33455e;
+    text-decoration:none; background:rgba(251,246,234,0.55); }
+  .tool-nav a:hover{ background:#fbf6ea; }
+  body{ background:var(--void); color:var(--parchment); font-family:'Crimson Text', serif; }
+  header{ padding:16px 28px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  h1{ font-family:'Pirata One', cursive; font-size:26px; margin:0; }
+  .tagline{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#33455e; margin:0; }
+  a.back{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--rust); text-decoration:none; }
+  a.back:hover{ text-decoration:underline; }
+
+  main{ max-width:1180px; margin:0 auto; padding:24px 24px 60px; }
+  h2{ font-family:'Pirata One', cursive; font-size:22px; color:var(--brass-bright); margin:0 0 4px; }
+
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:22px;
+    position:sticky; top:0; background:var(--void); padding:14px 0; z-index:5; border-bottom:1px solid rgba(232,220,192,0.15); }
+  #search{ font-family:'Crimson Text', serif; font-size:15px; padding:8px 14px; border-radius:6px;
+    border:1.5px solid rgba(232,220,192,0.35); background:rgba(232,220,192,0.06); color:var(--parchment); min-width:220px; }
+  #search::placeholder{ color:#5c6f7d; }
+  .seachips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .seachip{ font-family:'JetBrains Mono', monospace; font-size:11px; padding:6px 12px; border-radius:14px;
+    border:1.5px solid rgba(232,220,192,0.3); background:transparent; color:#9fb0bd; cursor:pointer; }
+  .seachip.active{ background:var(--brass-bright); color:var(--ink); border-color:var(--brass-bright); }
+  .count{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#5c6f7d; margin-left:auto; }
+
+  .sea-section{ margin-bottom:36px; }
+  .sea-title{ font-family:'Pirata One', cursive; font-size:24px; color:var(--parchment); margin:0 0 4px;
+    padding-bottom:8px; border-bottom:2px solid var(--brass-bright); }
+  .sea-note{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#9fb0bd; margin:0 0 16px; }
+
+  .placegrid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+  .placecard{ background:var(--parchment); border-radius:8px; padding:14px 16px; color:var(--ink);
+    box-shadow:0 6px 18px rgba(0,0,0,0.3); border:1.5px solid #6b4a2a; }
+  .placename{ font-family:'Pirata One', cursive; font-size:16px; margin:0 0 8px; color:var(--ink); }
+  .leaf{ font-size:13.5px; line-height:1.5; padding:6px 0; border-top:1px dashed rgba(27,42,65,0.2); }
+  .leaf:first-of-type{ border-top:none; }
+  .leaf .lname{ font-weight:600; }
+  .leaf .lrel{ font-family:'JetBrains Mono', monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:0.04em;
+    color:#fff; background:var(--teal); padding:1px 7px; border-radius:8px; margin-left:6px; }
+  .leaf .lstatus{ display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; }
+  .lstatus.alive{ background:#2f8f5f; } .lstatus.deceased{ background:#a7422a; } .lstatus.unknown{ background:#8a7a5c; }
+  .leaf .lnote{ display:block; font-size:12px; color:#5c4a2f; margin-top:2px; }
+
+  .unconfirmed .placecard{ background:rgba(232,220,192,0.06); color:var(--parchment); border:1.5px dashed rgba(232,220,192,0.35); box-shadow:none; }
+  .unconfirmed .placename{ color:#9fb0bd; }
+  .unconfirmed .leaf{ border-top-color:rgba(232,220,192,0.15); }
+  .unconfirmed .leaf .lnote{ color:#9fb0bd; }
+  .unconfirmed .leaf .lrel{ background:#5c6f7d; }
+
+  .empty{ font-family:'JetBrains Mono', monospace; font-size:12px; color:#5c6f7d; }
+  .ambient-backdrop{ position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<canvas class="ambient-backdrop" id="ambientBackdrop"></canvas>
+
+<header>
+  <div>
+    <h1>Origin Tree</h1>
+    <p class="tagline">Every tracked character, grouped by the sea and hometown they come from</p>
+  </div>
+  <a class="back" href="../../">← back to the atlas</a>
+</header>
+<nav class="tool-nav">
+  <a href="../../">🧭 Atlas</a>
+  <a href="../story-graph/">🌐 Story Graph</a>
+  <a href="../time-travel/">⏳ Time Travel</a>
+  <a href="../bounty-chart/">💰 Bounty Chart</a>
+  <a href="../route-animation/">⛵ Route Animation</a>
+  <a href="../qa/">❓ Ask the Atlas</a>
+  <a href="../bounties/">💵 Bounty Board</a>
+  <a href="../devil-fruits/">🍈 Devil Fruits</a>
+  <a href="../family-tree/">🧬 Family Tree</a>
+  <a href="../flat-map/">🗺 Flat Map</a>
+  <a href="../mural-theories/">📜 Mural Theories</a>
+</nav>
+
+<main>
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Search a character or place…" autocomplete="off">
+    <div class="seachips" id="seaChips"></div>
+    <span class="count" id="resultCount"></span>
+  </div>
+  <div id="tree"></div>
+</main>
+
+<script type="module">
+import { ORIGINS } from '../../src/data/origins.js';
+import { CHARACTERS as ALL_CHARACTERS } from '../../src/data/characters/index.js';
+import { startAmbientBackdrop } from '../../src/scene/ambientBackdrop.js';
+
+startAmbientBackdrop(document.getElementById('ambientBackdrop'));
+
+// Same curated-vs-stub name collision as the Bounty Board; dedupe by
+// normalized name, keeping the first (curated) occurrence.
+const seenNames = new Set();
+const CHARACTERS = ALL_CHARACTERS.filter(c => {
+  const key = c.name.toLowerCase().replace(/[^a-z]/g, '');
+  if (seenNames.has(key)) return false;
+  seenNames.add(key);
+  return true;
+});
+const charById = id => CHARACTERS.find(c => c.id === id);
+
+const SEAS = ['East Blue', 'South Blue', 'West Blue', 'North Blue', 'Grand Line', 'Unconfirmed'];
+const SEA_NOTES = {
+  'Unconfirmed': 'Stated honestly rather than invented, canon has never specified a birthplace for these characters.',
+};
+
+let activeSea = 'all';
+const seaChipsEl = document.getElementById('seaChips');
+seaChipsEl.innerHTML = `<button class="seachip active" data-sea="all">All</button>` +
+  SEAS.map(s => `<button class="seachip" data-sea="${s}">${s}</button>`).join('');
+seaChipsEl.addEventListener('click', e => {
+  const btn = e.target.closest('.seachip');
+  if (!btn) return;
+  activeSea = btn.dataset.sea;
+  seaChipsEl.querySelectorAll('.seachip').forEach(b => b.classList.toggle('active', b === btn));
+  render();
+});
+
+const searchEl = document.getElementById('search');
+searchEl.addEventListener('input', render);
+
+function relLabel(o){
+  if (!o.relation) return '';
+  return o.relation;
+}
+
+function matchesSearch(o, c, term){
+  if (!term) return true;
+  const hay = [c?.name, o.place, o.relation, o.note].filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(term);
+}
+
+const treeEl = document.getElementById('tree');
+const resultCount = document.getElementById('resultCount');
+
+function render(){
+  const term = searchEl.value.trim().toLowerCase();
+  const seas = activeSea === 'all' ? SEAS : [activeSea];
+  let shownCount = 0;
+
+  const sections = seas.map(seaName => {
+    const isUnconfirmed = seaName === 'Unconfirmed';
+    const entries = ORIGINS.filter(o => (isUnconfirmed ? !o.confirmed : o.confirmed && o.sea === seaName));
+    const matched = entries.filter(o => matchesSearch(o, charById(o.characterId), term));
+    if (!matched.length) return '';
+    shownCount += matched.length;
+
+    // group by place (or a single bucket for the unconfirmed section)
+    const groups = new Map();
+    matched.forEach(o => {
+      const key = isUnconfirmed ? '__unconfirmed__' : o.place;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(o);
+    });
+
+    const placeCards = [...groups.entries()].map(([place, list]) => {
+      const leaves = list.map(o => {
+        const c = charById(o.characterId);
+        const name = c ? c.name : o.characterId;
+        const statusDot = c ? `<span class="lstatus ${c.status === 'deceased' ? 'deceased' : c.status === 'alive' ? 'alive' : 'unknown'}"></span>` : '';
+        const rel = relLabel(o) ? `<span class="lrel">${relLabel(o)}</span>` : '';
+        const note = o.note ? `<span class="lnote">${o.note}</span>` : '';
+        return `<div class="leaf">${statusDot}<span class="lname">${name}</span>${rel}${note}</div>`;
+      }).join('');
+      const title = isUnconfirmed ? 'No confirmed birthplace' : place;
+      return `<div class="placecard"><h3 class="placename">${title}</h3>${leaves}</div>`;
+    }).join('');
+
+    return `
+      <div class="sea-section ${isUnconfirmed ? 'unconfirmed' : ''}">
+        <h2 class="sea-title">${seaName}</h2>
+        ${SEA_NOTES[seaName] ? `<p class="sea-note">${SEA_NOTES[seaName]}</p>` : ''}
+        <div class="placegrid">${placeCards}</div>
+      </div>`;
+  }).join('');
+
+  treeEl.innerHTML = sections || '<p class="empty">No origins match this search.</p>';
+  resultCount.textContent = `${shownCount} of ${ORIGINS.length} tracked origins`;
+}
+
+// Deep link from the main atlas's character dossier: ?char=<id> prefills
+// the search box with that character's name, same as typing it in by hand.
+const deepLinkChar = charById(new URLSearchParams(location.search).get('char'));
+if (deepLinkChar) searchEl.value = deepLinkChar.name;
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./src/styles/main.css">
+</head>
+<body>
+
+<canvas class="ambient-backdrop" id="ambientBackdrop"></canvas>
+
+<header>
+  <div class="brandblock">
+    <svg class="brand-emblem" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="32" cy="35" r="25" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M32 14 L36 35 L32 56 L28 35 Z" fill="currentColor" opacity="0.85"/>
+      <path d="M11 35 L30 31 L53 35 L30 39 Z" fill="currentColor" opacity="0.5"/>
+      <circle cx="32" cy="35" r="3.2" fill="currentColor"/>
+      <path d="M15 15 Q32 4 49 15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <p class="brand-eyebrow">Fan-made · unofficial · WebGL edition</p>
+      <div class="brand-title-row">
+        <h1>One Piece</h1>
+        <span class="brand-subtitle">Grand Line Atlas</span>
+      </div>
+      <p class="tagline">Drag to spin the world. Click an island to open its log. Follow a character to the next place their story took them.</p>
+    </div>
+  </div>
+  <div class="logpose">
+    <div class="logpose-readout"><span>Log Pose locked on</span><strong id="readoutName">· select an island ·</strong></div>
+    <div class="logpose-dial"><div class="logpose-needle" id="needle"></div></div>
+    <svg class="seal-stamp" id="sealStamp" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="26" fill="#8C3B26" stroke="#5c2517" stroke-width="2"/>
+      <path d="M32 16v28M24 24l8-8 8 8M22 40h20" stroke="#E8DCC0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <circle cx="32" cy="20" r="3" fill="none" stroke="#E8DCC0" stroke-width="2.5"/>
+    </svg>
+  </div>
+</header>
+
+<div class="controls controls-primary">
+  <input id="search" type="text" placeholder="Search an island, saga, or character…" autocomplete="off">
+  <div id="sagaChips"></div>
+  <span class="hint">drag = rotate · scroll = zoom</span>
+</div>
+<div class="controls controls-explore">
+  <span class="explore-label">Explore</span>
+  <button class="chip" id="guideBtn">❔ New here?</button>
+  <button class="chip" id="glossaryBtn">📖 Glossary</button>
+  <button class="chip" id="quizBtn">🧭 Quiz</button>
+  <button class="chip" id="graphBtn">🕸 Graph</button>
+  <a class="chip" href="./tools/story-graph/" target="_blank" rel="noopener">🌐 Full Story Graph</a>
+  <a class="chip" href="./tools/time-travel/" target="_blank" rel="noopener">⏳ Time Travel</a>
+  <a class="chip" href="./tools/bounty-chart/" target="_blank" rel="noopener">💰 Bounty Chart</a>
+  <a class="chip" href="./tools/route-animation/" target="_blank" rel="noopener">⛵ Route Animation</a>
+  <a class="chip" href="./tools/qa/" target="_blank" rel="noopener">❓ Ask the Atlas</a>
+  <a class="chip" href="./tools/bounties/" target="_blank" rel="noopener">💵 Bounty Board</a>
+  <a class="chip" href="./tools/devil-fruits/" target="_blank" rel="noopener">🍈 Devil Fruits</a>
+  <a class="chip" href="./tools/origins/" target="_blank" rel="noopener">🌳 Origin Tree</a>
+  <a class="chip" href="./tools/family-tree/" target="_blank" rel="noopener">🧬 Family Tree</a>
+  <a class="chip" href="./tools/flat-map/" target="_blank" rel="noopener">🗺 Flat Map</a>
+  <a class="chip" href="./tools/mural-theories/" target="_blank" rel="noopener">📜 Mural Theories</a>
+</div>
+
+<div id="stage">
+  <canvas id="globeCanvas"></canvas>
+  <div id="labelLayer"></div>
+  <div class="tooltip" id="tooltip"></div>
+  <div class="zoom-controls">
+    <button id="zoomIn" aria-label="Zoom in">+</button>
+    <button id="zoomOut" aria-label="Zoom out">−</button>
+    <button id="locateShip" aria-label="Go to the Thousand Sunny's current location">⌖</button>
+  </div>
+  <div class="panel paper-grain" id="panel"><div class="panel-inner" id="panelInner"></div></div>
+</div>
+
+<footer>
+  <span>Original cartography &amp; code, not affiliated with Eiichiro Oda, Shueisha, or Toei Animation.</span>
+  <span class="clipping-tag">Tracking: Elbaf Arc, Ch. 1186 (July 2026)</span>
+</footer>
+
+<div class="charmodal" id="charModal">
+  <div class="charmodal-inner" id="charModalInner">
+    <button class="charmodal-close" id="charModalClose" aria-label="Close character graph">&times;</button>
+    <p class="charmodal-title" id="charModalTitle"></p>
+    <p class="charmodal-subtitle" id="charModalSubtitle"></p>
+    <div class="charmodal-affiliations">
+      <div class="charmodal-crewbar" id="charCrewBar"></div>
+      <div class="charmodal-orgbar" id="charOrgBar"></div>
+      <div class="charmodal-bladebar" id="charBladeBar"></div>
+      <div class="charmodal-crossref" id="charCrossRef"></div>
+    </div>
+    <div class="charmodal-dossier" id="charDossier">
+      <span class="dossier-label">Bounty</span>
+      <span class="dossier-amount" id="charDossierAmount"></span>
+    </div>
+    <div id="charGraphContainer"></div>
+    <div class="graph-loading" id="graphLoading">
+      <svg class="snail-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path class="snail-shell" d="M40 34a10 10 0 1 1-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <path class="snail-shell" d="M40 34a16 16 0 1 1-16-16" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+        <path d="M14 44c4-6 10-8 16-8s10 3 12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <line x1="16" y1="38" x2="10" y2="28" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="22" y1="40" x2="18" y2="29" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="10" cy="28" r="1.6" fill="currentColor"/>
+        <circle cx="18" cy="29" r="1.6" fill="currentColor"/>
+      </svg>
+      <span class="graph-loading-label">connecting the line…</span>
+    </div>
+  </div>
+</div>
+
+<div class="glossmodal" id="guideModal">
+  <div class="glossmodal-inner paper-grain">
+    <button class="charmodal-close" id="guideModalClose" aria-label="Close guide">&times;</button>
+    <p class="charmodal-title">New to the Grand Line Atlas?</p>
+    <div class="guide-body">
+      <p>This is a fan-made, unofficial map of the One Piece world. Drag the globe to spin it, scroll to zoom,
+        and click any dot to open that island's log: what happened there, who was involved, and where the
+        story goes next.</p>
+
+      <p class="section-label">What the dots mean</p>
+      <div class="guide-legend">
+        <div><span class="legend-dot explored"></span> Explored: the crew has already been here</div>
+        <div><span class="legend-dot current"></span> Current: this is where the story stands right now</div>
+        <div><span class="legend-dot upcoming"></span> Upcoming: named, but not yet reached</div>
+        <div><span class="legend-dot memorial"></span> Memorial: a moment, not a place to visit</div>
+      </div>
+
+      <p class="section-label">The Log Pose dial</p>
+      <p>The needle up top always points at whichever island you last selected, a nod to the in-story compass
+        that locks onto the next island instead of north.</p>
+
+      <p class="section-label">Everything else on this site</p>
+      <div class="guide-tools">
+        <div><b>🕸 Graph</b>: browse every crew's <i>and</i> organization's (Marines, CP9, the World Government…) relationships without clicking into an island first. Any character's own profile also cross-links out to the Family Tree, Story Graph, Origin Tree, and Bounty Chart when they have data there.</div>
+        <div><b>🌐 Full Story Graph</b>: every character, crew, place, fruit, and ship in one connected map, with a built-in path finder between any two.</div>
+        <div><b>⏳ Time Travel</b>: drag through the sagas and watch the world (and the crew's ship) unlock arc by arc.</div>
+        <div><b>💵 Bounty Board</b>: every wanted pirate, ranked, searchable, grouped by crew and by whether they're alive, deceased, or unconfirmed.</div>
+        <div><b>⛵ Route Animation</b>: watch the ship actually sail the whole journey so far, stop by stop.</div>
+        <div><b>❓ Ask the Atlas</b>: type a plain-English question about anyone or anything in the story.</div>
+        <div><b>📖 Glossary</b> / <b>🧭 Quiz</b>: world-building terms explained once, and a quick trivia check.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="glossmodal" id="glossModal">
+  <div class="glossmodal-inner paper-grain">
+    <button class="charmodal-close" id="glossModalClose" aria-label="Close glossary">&times;</button>
+    <p class="charmodal-title" id="glossTitle">World Glossary</p>
+    <div class="glossary-list" id="glossaryList"></div>
+  </div>
+</div>
+
+<div class="glossmodal" id="quizModal">
+  <div class="glossmodal-inner paper-grain">
+    <button class="charmodal-close" id="quizModalClose" aria-label="Close quiz">&times;</button>
+    <p class="charmodal-title">Quick Quiz</p>
+    <div id="quizBody"></div>
+  </div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

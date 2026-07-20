@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Travel | The Grand Line Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Crimson+Text:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E8DCC0; --ink:#1B2A41; --brass-bright:#C99A3A; --teal:#1F5C56;
+    --rust:#8C3B26; --void:#0b1622; --void-deep:#050a11;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  .tool-nav{ display:flex; gap:8px; flex-wrap:wrap; padding:9px 28px; background:#D8C9A3;
+    border-bottom:2px solid var(--ink); font-family:'JetBrains Mono', monospace; font-size:11px; }
+  .tool-nav a{ padding:5px 11px; border:1.5px solid var(--ink); border-radius:999px; color:#33455e;
+    text-decoration:none; background:rgba(251,246,234,0.55); }
+  .tool-nav a:hover{ background:#fbf6ea; }
+  body{ background:var(--void); color:var(--parchment); font-family:'Crimson Text', serif;
+    overflow:hidden; height:100vh; display:flex; flex-direction:column; }
+  header{ padding:16px 28px; background:var(--parchment); color:var(--ink); border-bottom:2px solid var(--ink);
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  h1{ font-family:'Pirata One', cursive; font-size:26px; margin:0; }
+  .tagline{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#33455e; margin:0; }
+  a.back{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--rust); text-decoration:none; }
+  a.back:hover{ text-decoration:underline; }
+
+  .ambient-backdrop{ position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+  #stage{ flex:1; position:relative; }
+  #globeCanvas{ position:absolute; inset:0; display:block; width:100%; height:100%; }
+  #labelLayer{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:2; }
+  .island-label{
+    position:absolute; left:0; top:0; width:max-content;
+    font-family:'Crimson Text', serif; font-size:13px; color:var(--parchment);
+    background:rgba(11,22,34,0.55); padding:2px 8px; border-radius:3px;
+    white-space:nowrap; pointer-events:none; user-select:none;
+    border:1px solid rgba(232,220,192,0.25); transition:opacity 0.4s;
+  }
+
+  .scrubber{
+    position:absolute; left:0; right:0; bottom:0; z-index:3; padding:16px 28px 20px;
+    background:linear-gradient(to top, rgba(5,10,17,0.95), rgba(5,10,17,0));
+  }
+  .scrubber .now{ font-family:'Pirata One', cursive; font-size:22px; color:var(--brass-bright); margin:0 0 2px; }
+  .scrubber .chrange{ font-family:'JetBrains Mono', monospace; font-size:11px; color:#9fb0bd; margin:0 0 10px; }
+  .scrubber input[type=range]{ width:100%; accent-color:var(--brass-bright); }
+  .scrubber .ticks{ display:flex; justify-content:space-between; font-family:'JetBrains Mono', monospace;
+    font-size:9px; color:#5c6f7d; margin-top:4px; }
+  .scrubber .ticks span{ max-width:80px; text-align:center; }
+
+  #introPanel{
+    position:absolute; top:16px; right:16px; z-index:3; width:260px; max-height:60%;
+    overflow-y:auto; background:rgba(11,22,34,0.9); border:2px solid var(--brass-bright);
+    border-radius:6px; padding:14px 16px; box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  }
+  #introPanel h3{ font-family:'JetBrains Mono', monospace; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:0.06em; color:#9fb0bd; margin:0 0 8px; }
+  #introPanel ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+  #introPanel li{ font-size:13.5px; padding:2px 0; border-bottom:1px solid rgba(232,220,192,0.08); }
+  #introPanel .empty{ color:#5c6f7d; font-family:'JetBrains Mono', monospace; font-size:11px; }
+
+  #shipPanel{
+    position:absolute; top:16px; left:16px; z-index:3; width:230px; max-height:60%;
+    overflow-y:auto; background:rgba(11,22,34,0.9); border:2px solid var(--brass-bright);
+    border-radius:6px; padding:14px 16px; box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  }
+  #shipPanel h3{ font-family:'JetBrains Mono', monospace; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:0.06em; color:#9fb0bd; margin:0 0 6px; }
+  #shipPanel .vessel{ font-family:'Pirata One', cursive; font-size:17px; color:var(--brass-bright); margin:0 0 10px; }
+  #shipPanel ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+  #shipPanel li{ font-size:13px; padding:2px 0; border-bottom:1px solid rgba(232,220,192,0.08); }
+  #shipPanel li:first-child{ color:var(--brass-bright); font-weight:600; }
+</style>
+</head>
+<body>
+
+<canvas class="ambient-backdrop" id="ambientBackdrop"></canvas>
+
+<header>
+  <div>
+    <h1>Time Travel</h1>
+    <p class="tagline">Drag through the sagas and watch the world unlock, arc by arc</p>
+  </div>
+  <a class="back" href="../../">← back to the atlas</a>
+</header>
+<nav class="tool-nav">
+  <a href="../../">🧭 Atlas</a>
+  <a href="../story-graph/">🌐 Story Graph</a>
+  <a href="../bounty-chart/">💰 Bounty Chart</a>
+  <a href="../route-animation/">⛵ Route Animation</a>
+  <a href="../qa/">❓ Ask the Atlas</a>
+  <a href="../bounties/">💵 Bounty Board</a>
+  <a href="../devil-fruits/">🍈 Devil Fruits</a>
+  <a href="../origins/">🌳 Origin Tree</a>
+  <a href="../family-tree/">🧬 Family Tree</a>
+  <a href="../flat-map/">🗺 Flat Map</a>
+  <a href="../mural-theories/">📜 Mural Theories</a>
+</nav>
+
+<div id="stage">
+  <canvas id="globeCanvas"></canvas>
+  <div id="labelLayer"></div>
+  <div id="shipPanel">
+    <h3>Currently sailing</h3>
+    <p class="vessel" id="vesselName"></p>
+    <h3>Everywhere so far</h3>
+    <ul id="shipLog"></ul>
+  </div>
+  <div id="introPanel">
+    <h3>New this arc</h3>
+    <ul id="introList"></ul>
+  </div>
+  <div class="scrubber">
+    <p class="now" id="sagaName"></p>
+    <p class="chrange" id="sagaChapters"></p>
+    <input type="range" id="scrub" min="0" max="9" step="1" value="0">
+    <div class="ticks" id="ticks"></div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { setupScene, GLOBE_RADIUS } from '../../src/scene/setupScene.js';
+import { buildMarkers, updateLabelPositions } from '../../src/scene/markers.js';
+import { LOCATIONS } from '../../src/data/locations.js';
+import { TIMELINE } from '../../src/data/timeline.js';
+import { CHARACTERS } from '../../src/data/characters/index.js';
+import { SHIPS } from '../../src/data/ships.js';
+import { makeShipIconTexture } from '../../src/scene/texture.js';
+import { latLonToVec3, surfaceNormal } from '../../src/utils/geo.js';
+import { startAmbientBackdrop } from '../../src/scene/ambientBackdrop.js';
+
+startAmbientBackdrop(document.getElementById('ambientBackdrop'));
+
+const canvas = document.getElementById('globeCanvas');
+const labelLayer = document.getElementById('labelLayer');
+const stage = document.getElementById('stage');
+
+const { renderer, scene, camera, controls, updateOcean } = setupScene(canvas, stage);
+const clock = new THREE.Clock();
+const { markerObjects, labelEls } = buildMarkers(scene, labelLayer, LOCATIONS, GLOBE_RADIUS);
+
+// --- ship tracker: follows the story's chronological route, swapping
+// from the Going Merry to the Thousand Sunny at the point the story
+// actually made that change (see SHIPS in src/data/ships.js) ---
+const route = LOCATIONS.filter(l => l.status !== 'upcoming');
+const merryToSunnyIdx = route.findIndex(l => l.id === 'merryfuneral');
+const merryShip = SHIPS.find(s => s.id === 'going-merry');
+const sunnyShip = SHIPS.find(s => s.id === 'thousand-sunny');
+
+const shipSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeShipIconTexture('#E8DCC0'), transparent: true }));
+shipSprite.scale.set(0.4, 0.4, 0.4);
+scene.add(shipSprite);
+
+const shipLabelEl = document.createElement('div');
+shipLabelEl.className = 'island-label ship-label';
+shipLabelEl.textContent = '⛵';
+labelLayer.appendChild(shipLabelEl);
+const shipLabelEntry = { el: shipLabelEl, loc: route[0], worldPos: shipSprite.position, priority: true };
+labelEls.push(shipLabelEntry);
+
+const vesselNameEl = document.getElementById('vesselName');
+const shipLogEl = document.getElementById('shipLog');
+
+let shipStopIdx = -1;
+let shipToken = 0;
+
+function slerp(a, b, t){
+  const dot = THREE.MathUtils.clamp(a.dot(b), -1, 1);
+  const theta = Math.acos(dot) * t;
+  if (Math.abs(theta) < 1e-6) return a.clone();
+  const relative = b.clone().addScaledVector(a, -dot).normalize();
+  return a.clone().multiplyScalar(Math.cos(theta)).add(relative.multiplyScalar(Math.sin(theta)));
+}
+
+function placeShipInstantly(stopIdx){
+  const loc = route[stopIdx];
+  const pos = latLonToVec3(loc.lat, loc.lon + 3, GLOBE_RADIUS + 0.09);
+  shipSprite.position.copy(pos);
+  shipLabelEntry.worldPos = shipSprite.position;
+  shipLabelEntry.loc = loc;
+}
+
+function updateShipInfo(stopIdx){
+  const usingSunny = stopIdx >= merryToSunnyIdx;
+  const ship = usingSunny ? sunnyShip : merryShip;
+  vesselNameEl.textContent = `⛵ ${ship.name}`;
+  shipLogEl.innerHTML = route.slice(0, stopIdx + 1).map(l => l.name).reverse()
+    .map(name => `<li>${name}</li>`).join('');
+}
+
+function sailShipTo(stopIdx){
+  if (stopIdx === shipStopIdx) return;
+  const fromIdx = shipStopIdx === -1 ? stopIdx : shipStopIdx;
+  const from = surfaceNormal(route[fromIdx].lat, route[fromIdx].lon);
+  const to = surfaceNormal(route[stopIdx].lat, route[stopIdx].lon);
+  const token = ++shipToken;
+  const startTime = performance.now();
+  const duration = shipStopIdx === -1 ? 0 : 900;
+
+  function step(now){
+    if (token !== shipToken) return;
+    const t = duration === 0 ? 1 : Math.min(1, (now - startTime) / duration);
+    const dir = slerp(from, to, t);
+    shipSprite.position.copy(dir.multiplyScalar(GLOBE_RADIUS + 0.09));
+    shipLabelEntry.worldPos = shipSprite.position;
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+
+  shipStopIdx = stopIdx;
+  shipLabelEntry.loc = route[stopIdx];
+  updateShipInfo(stopIdx);
+}
+
+const sagaIndex = new Map(TIMELINE.map((t, i) => [t.saga, i]));
+const locSagaIdx = new Map(LOCATIONS.map(l => [l.id, sagaIndex.get(l.saga) ?? 0]));
+
+// characters whose firstSeenAt location we can resolve to a saga
+const introBySaga = new Map(TIMELINE.map((t, i) => [i, []]));
+CHARACTERS.forEach(c => {
+  if (!c.firstSeenAt) return;
+  const idx = locSagaIdx.get(c.firstSeenAt);
+  if (idx !== undefined) introBySaga.get(idx)?.push(c.name);
+});
+
+const scrub = document.getElementById('scrub');
+scrub.max = String(TIMELINE.length - 1);
+
+const ticksEl = document.getElementById('ticks');
+ticksEl.innerHTML = TIMELINE.map(t => `<span>${t.saga.replace(' Saga', '')}</span>`).join('');
+
+const sagaNameEl = document.getElementById('sagaName');
+const sagaChaptersEl = document.getElementById('sagaChapters');
+const introListEl = document.getElementById('introList');
+
+let currentIdx = 0;
+
+function stopIdxForSaga(idx){
+  let found = 0;
+  route.forEach((loc, j) => { if ((locSagaIdx.get(loc.id) ?? 0) <= idx) found = j; });
+  return found;
+}
+
+function applyUnlock(idx){
+  currentIdx = idx;
+  markerObjects.forEach(sprite => {
+    const unlocked = (locSagaIdx.get(sprite.userData.loc.id) ?? 0) <= idx;
+    sprite.visible = unlocked;
+  });
+
+  const t = TIMELINE[idx];
+  sagaNameEl.textContent = t.saga;
+  sagaChaptersEl.textContent = `Chapters ${t.chapterRange} · ${t.yearsPublished}`;
+
+  const intro = introBySaga.get(idx) || [];
+  introListEl.innerHTML = intro.length
+    ? intro.map(name => `<li>${name}</li>`).join('')
+    : '<li class="empty">No new named characters this arc.</li>';
+
+  sailShipTo(stopIdxForSaga(idx));
+}
+
+scrub.addEventListener('input', () => applyUnlock(Number(scrub.value)));
+applyUnlock(0);
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  updateOcean(clock.getDelta());
+  updateLabelPositions(labelEls, camera, stage, GLOBE_RADIUS, null);
+  // updateLabelPositions sets inline display every frame — reapply the
+  // lock state on top of it so locked labels stay hidden regardless
+  // (the ship's own label is exempt — it's always somewhere unlocked).
+  labelEls.forEach(({ el, loc, priority }) => {
+    if (!priority && (locSagaIdx.get(loc.id) ?? 0) > currentIdx) el.style.display = 'none';
+  });
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
