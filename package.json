@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build-story-graph.mjs && vite build",
     "preview": "vite preview",
     "sync-characters": "node scripts/fetch-characters.mjs",
     "build-story-graph": "node scripts/build-story-graph.mjs",
