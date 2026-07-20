@@ -166,6 +166,61 @@ export function buildOceanShimmerTexture(){
   return tex;
 }
 
+/** A small stone-tablet icon (a Poneglyph marker), carved lines only, no
+ *  text glyphs traced from anything, red for the Rio Poneglyph, dark
+ *  stone-gray for every other one. */
+export function makePoneglyphIconTexture(hex){
+  const s = 96;
+  const c = document.createElement("canvas"); c.width = c.height = s;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = hex;
+  ctx.strokeStyle = "#1B2A41";
+  ctx.lineWidth = 3;
+
+  ctx.beginPath();
+  ctx.moveTo(s*0.22, s*0.82);
+  ctx.lineTo(s*0.22, s*0.32);
+  ctx.lineTo(s*0.5, s*0.14);
+  ctx.lineTo(s*0.78, s*0.32);
+  ctx.lineTo(s*0.78, s*0.82);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  ctx.strokeStyle = "rgba(27,42,65,0.55)";
+  ctx.lineWidth = 2;
+  [0.42, 0.56, 0.7].forEach(y => {
+    ctx.beginPath();
+    ctx.moveTo(s*0.32, s*y);
+    ctx.lineTo(s*0.68, s*y);
+    ctx.stroke();
+  });
+
+  return new THREE.CanvasTexture(c);
+}
+
+/** A small breaching sea-serpent icon marking Sea King territory, a
+ *  generic silhouette rather than any one named creature's design. */
+export function makeSeaKingIconTexture(hex){
+  const s = 96;
+  const c = document.createElement("canvas"); c.width = c.height = s;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = hex;
+  ctx.strokeStyle = "#0F2A26";
+  ctx.lineWidth = 2.5;
+
+  ctx.beginPath();
+  ctx.moveTo(s*0.12, s*0.72);
+  ctx.bezierCurveTo(s*0.28, s*0.36, s*0.42, s*0.9, s*0.58, s*0.5);
+  ctx.bezierCurveTo(s*0.68, s*0.26, s*0.8, s*0.3, s*0.88, s*0.2);
+  ctx.lineTo(s*0.82, s*0.4);
+  ctx.bezierCurveTo(s*0.7, s*0.5, s*0.6, s*0.98, s*0.4, s*0.6);
+  ctx.bezierCurveTo(s*0.3, s*0.82, s*0.2, s*0.86, s*0.12, s*0.72);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  return new THREE.CanvasTexture(c);
+}
+
 /** Small circular dot texture used for marker sprites. */
 export function makeDotTexture(hex){
   const s = 64;

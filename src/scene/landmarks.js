@@ -176,6 +176,64 @@ function buildGlassDome(){
   return group;
 }
 
+function buildNoahsArk(){
+  // A weathered, city-sized ark hull, an original silhouette (boxy tiered
+  // superstructure, not the manga's specific cross-shaped design) sized
+  // larger than its neighbors to read as ancient and outsized.
+  const group = new THREE.Group();
+  const stone = new THREE.MeshStandardMaterial({ color: 0x746653, roughness: 0.95 });
+  const trim = new THREE.MeshStandardMaterial({ color: 0xB9A56A, roughness: 0.6, metalness: 0.2 });
+
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.16, 0.22), stone);
+  hull.position.set(0, 0.1, 0);
+  group.add(hull);
+
+  const tierGeo = new THREE.BoxGeometry(0.3, 0.1, 0.16);
+  const tier1 = new THREE.Mesh(tierGeo, stone);
+  tier1.position.set(-0.06, 0.22, 0);
+  const tier2 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.09, 0.1), stone);
+  tier2.position.set(-0.06, 0.31, 0);
+  group.add(tier1, tier2);
+
+  const bandGeo = new THREE.BoxGeometry(0.64, 0.02, 0.24);
+  const band = new THREE.Mesh(bandGeo, trim);
+  band.position.set(0, 0.02, 0);
+  group.add(band);
+
+  group.scale.setScalar(1.5);
+  return group;
+}
+
+function buildSeaKing(){
+  // A generic breaching sea-serpent silhouette, deliberately unlike any one
+  // specific named Sea King's design, standing in for the species as a whole.
+  const group = new THREE.Group();
+  const hide = new THREE.MeshStandardMaterial({ color: 0x2E5C52, roughness: 0.6 });
+  const belly = new THREE.MeshStandardMaterial({ color: 0xBFDDD3, roughness: 0.7 });
+
+  const segCount = 5;
+  for (let i = 0; i < segCount; i++){
+    const t = i / (segCount - 1);
+    const r = 0.09 - t * 0.05;
+    const seg = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 10), hide);
+    seg.position.set(-0.24 + t * 0.48, Math.sin(t * Math.PI) * 0.22, 0);
+    group.add(seg);
+  }
+
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.16, 10), hide);
+  head.position.set(-0.3, 0.02, 0);
+  head.rotation.z = Math.PI / 2.3;
+  group.add(head);
+
+  const finGeo = new THREE.ConeGeometry(0.05, 0.14, 3);
+  const fin = new THREE.Mesh(finGeo, belly);
+  fin.position.set(0.02, 0.34, 0);
+  group.add(fin);
+
+  group.scale.setScalar(1.1);
+  return group;
+}
+
 export const LANDMARK_BUILDERS = {
   elephant: buildElephant,
   tieredCake: buildTieredCake,
@@ -183,28 +241,45 @@ export const LANDMARK_BUILDERS = {
   toriiGate: buildToriiGate,
   cloudDais: buildCloudDais,
   glassDome: buildGlassDome,
+  noahsArk: buildNoahsArk,
+  seaKing: buildSeaKing,
 };
 
+// Lat/lon nudges so a location with more than one landmark doesn't stack
+// every model directly on top of the first. At GLOBE_RADIUS = 5, a few
+// degrees is enough separation to clear each other (matching the +4deg
+// nudge main.js already uses to offset the Thousand Sunny tracker marker
+// from its location dot).
+const CLUSTER_OFFSETS = [[0, 0], [4, 2.2], [-4, -2.2], [0, 4.4]];
+
 /** Attaches any registered landmark models to the globe for locations
- *  that declare a `landmark` key in data/locations.js. Returns an
- *  updateLandmarks(elapsed) function — call it once per animation frame
- *  (mirroring updateOcean(dt)'s convention) to drive each landmark's gentle
- *  idle bob and, where present, its ember light's pulse. */
+ *  that declare a `landmark` key (a string, or an array for a cluster) in
+ *  data/locations.js. Returns an updateLandmarks(elapsed) function — call
+ *  it once per animation frame (mirroring updateOcean(dt)'s convention) to
+ *  drive each landmark's gentle idle bob and, where present, its ember
+ *  light's pulse. */
 export function attachLandmarks(scene, locations, globeRadius){
   const animated = [];
   locations.forEach(loc => {
-    const builder = loc.landmark && LANDMARK_BUILDERS[loc.landmark];
-    if (!builder) return;
-    const model = builder();
-    const pos = latLonToVec3(loc.lat, loc.lon, globeRadius + 0.05);
-    model.position.copy(pos);
-    orientToNormal(model, surfaceNormal(loc.lat, loc.lon));
-    scene.add(model);
-    animated.push({
-      model,
-      basePosition: pos.clone(),
-      normal: surfaceNormal(loc.lat, loc.lon),
-      phase: Math.random() * Math.PI * 2,
+    if (!loc.landmark) return;
+    const keys = Array.isArray(loc.landmark) ? loc.landmark : [loc.landmark];
+    keys.forEach((key, i) => {
+      const builder = LANDMARK_BUILDERS[key];
+      if (!builder) return;
+      const [dLat, dLon] = CLUSTER_OFFSETS[i] || CLUSTER_OFFSETS[0];
+      const lat = loc.lat + dLat;
+      const lon = loc.lon + dLon;
+      const model = builder();
+      const pos = latLonToVec3(lat, lon, globeRadius + 0.05);
+      model.position.copy(pos);
+      orientToNormal(model, surfaceNormal(lat, lon));
+      scene.add(model);
+      animated.push({
+        model,
+        basePosition: pos.clone(),
+        normal: surfaceNormal(lat, lon),
+        phase: Math.random() * Math.PI * 2,
+      });
     });
   });
 

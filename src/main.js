@@ -18,6 +18,9 @@ import { ORIGINS } from './data/origins.js';
 import { GLOSSARY } from './data/glossary.js';
 import { generateQuestion } from './trivia.js';
 import { startAmbientBackdrop } from './scene/ambientBackdrop.js';
+import { PONEGLYPHS } from './data/poneglyphs.js';
+import { CREATURES } from './data/creatures.js';
+import { makePoneglyphIconTexture, makeSeaKingIconTexture } from './scene/texture.js';
 
 // Two organizations.js entries (Revolutionary Army, Cross Guild) are
 // deliberately cross-listed from crews.js because they function more like a
@@ -93,6 +96,46 @@ if (shipLocation){
   labelLayer.appendChild(shipLabelEl);
   labelEls.push({ el: shipLabelEl, loc: shipLocation, worldPos: shipPos, priority: true });
 }
+
+// --- Poneglyph & Sea King markers ---
+// Same icon-sprite-plus-floating-label convention as the ship tracker
+// above, so these facts are visible on the globe itself rather than only
+// showing up once a location panel is already open.
+PONEGLYPHS.forEach(p => {
+  const loc = LOCATIONS.find(l => l.id === p.locationId);
+  if (!loc) return;
+  const pos = latLonToVec3(loc.lat + 1.2, loc.lon - 2.4, GLOBE_RADIUS + 0.09);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makePoneglyphIconTexture(p.color === 'red' ? '#C1502E' : '#8a8272'), transparent: true,
+  }));
+  sprite.position.copy(pos);
+  sprite.scale.set(0.3, 0.3, 0.3);
+  scene.add(sprite);
+
+  const el = document.createElement('div');
+  el.className = 'island-label poneglyph-label' + (p.color === 'red' ? ' red' : '');
+  el.textContent = `${p.color === 'red' ? '🔴' : '📜'} ${p.name}`;
+  labelLayer.appendChild(el);
+  labelEls.push({ el, loc, worldPos: pos });
+});
+
+CREATURES.forEach(c => {
+  const loc = LOCATIONS.find(l => l.id === c.locationId);
+  if (!loc) return;
+  const pos = latLonToVec3(loc.lat - 1.2, loc.lon - 4.8, GLOBE_RADIUS + 0.09);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeSeaKingIconTexture('#2E5C52'), transparent: true,
+  }));
+  sprite.position.copy(pos);
+  sprite.scale.set(0.34, 0.34, 0.34);
+  scene.add(sprite);
+
+  const el = document.createElement('div');
+  el.className = 'island-label seaking-label';
+  el.textContent = `🐋 ${c.name} (${c.species})`;
+  labelLayer.appendChild(el);
+  labelEls.push({ el, loc, worldPos: pos });
+});
 
 // --- filter state ---
 let activeSaga = 'all';

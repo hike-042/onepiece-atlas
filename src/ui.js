@@ -1,5 +1,8 @@
 import { SAGAS, LOCATIONS } from './data/locations.js';
 import { findCharacterByName } from './data/characters/index.js';
+import { poneglyphsAtLocation } from './data/poneglyphs.js';
+import { creaturesAtLocation } from './data/creatures.js';
+import { shipsAtLocation } from './data/ships.js';
 
 /** Builds the saga filter chips once, into #sagaChips. */
 export function renderSagaChips(container, onChange){
@@ -48,6 +51,15 @@ export function renderPanel({ panel, panelInner, loc, onLinkClick, onCharacterCl
       return `<span class="${cls}"${attr}><b>${c.name}</b>${fruitTag}: ${c.role}</span>`;
     }).join('');
 
+  const shipHtml = shipsAtLocation(loc.id)
+    .map(s => `<li><b>${s.name}</b>: ${s.note}</li>`).join('');
+
+  const creatureHtml = creaturesAtLocation(loc.id)
+    .map(c => `<li><b>${c.name}</b> (${c.species}): ${c.note}</li>`).join('');
+
+  const poneglyphHtml = poneglyphsAtLocation(loc.id)
+    .map(p => `<li class="${p.color === 'red' ? 'poneglyph-red' : ''}"><b>${p.name}</b>${p.color === 'red' ? ' 🔴' : ''}: ${p.summary}</li>`).join('');
+
   const linkHtml = (loc.links || [])
     .map(id => LOCATIONS.find(l => l.id === id))
     .filter(Boolean)
@@ -73,6 +85,9 @@ export function renderPanel({ panel, panelInner, loc, onLinkClick, onCharacterCl
     ${loc.foreshadowing ? `<div class="foreshadow-note"><b>Looking back:</b> ${loc.foreshadowing}</div>` : ''}
     <p class="section-label">Characters tied to this island</p>
     <div class="chargrid">${charHtml || '<em>Not yet recorded</em>'}</div>
+    ${shipHtml ? `<p class="section-label">Notable vessels here</p><ul class="events">${shipHtml}</ul>` : ''}
+    ${creatureHtml ? `<p class="section-label">Wildlife</p><ul class="events">${creatureHtml}</ul>` : ''}
+    ${poneglyphHtml ? `<p class="section-label">Poneglyphs recorded here</p><ul class="events">${poneglyphHtml}</ul>` : ''}
     <p class="section-label">Follow the story onward</p>
     <div>${linkHtml}</div>
     ${statusLine ? `<div class="status-note">${statusLine}</div>` : ''}

@@ -25,6 +25,7 @@ export const GLOSSARY = [
   { id:"conqueror-haki", term:"Conqueror's Haki", definition:"The rarest form of Haki, letting its user overwhelm the will of weaker-willed people around them just by exerting pressure, said to appear in only one in several million people." },
   { id:"seastone", term:"Seastone", definition:"A rare mineral that drains a Devil Fruit user's strength just by touching them, acting like a solid, portable chunk of the sea itself. It's the Marines' standard tool for restraining one." },
   { id:"awakening", term:"Devil Fruit Awakening", definition:"An extremely rare stage of mastery where a user's power stops being confined to their own body and starts reshaping the world around them instead. Only a handful of the story's strongest fighters have ever reached it." },
+  { id:"sea-kings", term:"Sea Kings", definition:"Enormous sea monsters native to Grand Line waters and beyond, common enough along the sea floor that Fish-Man Island's residents treat the surrounding waters as their neighborhood rather than a constant threat." },
 ];
 
 export function findGlossaryTerm(id){

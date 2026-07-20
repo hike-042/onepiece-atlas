@@ -21,10 +21,14 @@ export const SHIPS = [
     note:"Eustass Kid's ship, a stylized battleship reflecting his aggressive reputation." },
   { id:"ark-maxim", name:"Ark Maxim", crew:null, status:"unknown",
     note:"Enel's personal ship, built to leave Skypiea entirely for outer space after his defeat." },
-  { id:"noahs-ark", name:"Noah", crew:null, status:"active",
-    note:"An ancient, city-sized ark discovered at Fish-Man Island, not a crew's ship, but a Void Century relic large enough to be mistaken for one." },
+  { id:"noahs-ark", name:"Noah", crew:null, status:"active", locationId:"fishmanisland",
+    note:"An ancient, city-sized ark discovered at Fish-Man Island, not a crew's ship, but a Void Century relic large enough to be mistaken for one. Once nearly launched to wipe out the island in a recreation of a Void Century flood." },
 ];
 
 export function shipsForCrew(crewId){
   return SHIPS.filter(s => s.crew === crewId);
+}
+
+export function shipsAtLocation(locationId){
+  return SHIPS.filter(s => s.locationId === locationId);
 }
