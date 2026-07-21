@@ -18,9 +18,10 @@ import { ORIGINS } from './data/origins.js';
 import { GLOSSARY } from './data/glossary.js';
 import { generateQuestion } from './trivia.js';
 import { startAmbientBackdrop } from './scene/ambientBackdrop.js';
-import { PONEGLYPHS } from './data/poneglyphs.js';
+import { PONEGLYPHS, roadPoneglyphProgress } from './data/poneglyphs.js';
 import { CREATURES } from './data/creatures.js';
 import { makePoneglyphIconTexture, makeSeaKingIconTexture } from './scene/texture.js';
+import { ancientWeaponForCharacter } from './data/ancientWeapons.js';
 
 // Two organizations.js entries (Revolutionary Army, Cross Guild) are
 // deliberately cross-listed from crews.js because they function more like a
@@ -55,6 +56,7 @@ const charModal = document.getElementById('charModal');
 const charModalTitle = document.getElementById('charModalTitle');
 const charModalSubtitle = document.getElementById('charModalSubtitle');
 const charFruitEffect = document.getElementById('charFruitEffect');
+const charHakiBar = document.getElementById('charHakiBar');
 const charCrewBar = document.getElementById('charCrewBar');
 const charOrgBar = document.getElementById('charOrgBar');
 const charBladeBar = document.getElementById('charBladeBar');
@@ -95,6 +97,22 @@ if (shipLocation){
   shipLabelEl.textContent = '⛵ Thousand Sunny, currently here';
   labelLayer.appendChild(shipLabelEl);
   labelEls.push({ el: shipLabelEl, loc: shipLocation, worldPos: shipPos, priority: true });
+}
+
+// --- Road to Laugh Tale tracker ---
+// A running total derived straight from poneglyphs.js, no separate state
+// to keep in sync: as poneglyphs.js's `read` flags change with the story,
+// this bar updates on its own.
+{
+  const { total, read, rio } = roadPoneglyphProgress();
+  const laughtaleFill = document.getElementById('laughtaleFill');
+  const laughtaleReadout = document.getElementById('laughtaleReadout');
+  const laughtaleTracker = document.getElementById('laughtaleTracker');
+  laughtaleFill.style.width = `${(read / total) * 100}%`;
+  laughtaleReadout.textContent = `${read} of ${total} Road Poneglyphs read`;
+  laughtaleTracker.title = rio && !rio.read
+    ? 'The Rio Poneglyph, the master tablet needed to actually pinpoint Laugh Tale, is still unread.'
+    : 'The Rio Poneglyph has been read.';
 }
 
 // --- Poneglyph & Sea King markers ---
@@ -204,11 +222,14 @@ function openCharModal(charId){
   if (!character) return;
   charModalTitle.textContent = character.name;
 
+  const weapon = ancientWeaponForCharacter(charId);
   const bits = [];
   if (character.epithet) bits.push(`"${character.epithet}"`);
   if (character.devilFruit) bits.push(`Devil Fruit: ${character.devilFruit.name} (${character.devilFruit.type})`);
+  if (weapon) bits.push(`⚔️ Ancient Weapon: ${weapon.name}`);
   charModalSubtitle.textContent = bits.join('  ·  ');
   charFruitEffect.textContent = character.devilFruit ? `🍈 ${character.devilFruit.effect}` : '';
+  renderHakiBadges(character.haki);
 
   if (character.bounty){
     charDossierAmount.textContent = character.bounty;
@@ -230,6 +251,14 @@ function openCharModal(charId){
 
   charModal.classList.add('open');
   mountGraph(openCharacterGraph, charId, (nextId) => openCharModal(nextId));
+}
+
+const HAKI_ICONS = { "Observation": "👁", "Armament": "🛡", "Conqueror's": "👑" };
+function renderHakiBadges(haki){
+  charHakiBar.innerHTML = (haki || []).map(h => {
+    const icon = HAKI_ICONS[h] || HAKI_ICONS[Object.keys(HAKI_ICONS).find(k => h.startsWith(k))] || '✦';
+    return `<span class="hakichip">${icon} ${h}</span>`;
+  }).join('');
 }
 
 function renderCrewButtons(crews){
@@ -281,6 +310,7 @@ function openCrewModal(crewId){
   charBladeBar.innerHTML = '';
   charCrossRef.innerHTML = '';
   charFruitEffect.textContent = '';
+  charHakiBar.innerHTML = '';
   mountGraph(openCrewGraph, crewId, (nextCharId) => openCharModal(nextCharId));
   if (crew){
     charModalTitle.textContent = crew.name;
@@ -302,6 +332,7 @@ function openOrgModal(orgId){
   charBladeBar.innerHTML = '';
   charCrossRef.innerHTML = '';
   charFruitEffect.textContent = '';
+  charHakiBar.innerHTML = '';
   mountGraph(openOrganizationGraph, orgId, (nextCharId) => openCharModal(nextCharId));
   if (org){
     charModalTitle.textContent = org.name;

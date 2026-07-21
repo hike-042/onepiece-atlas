@@ -3,6 +3,7 @@ import { findCharacterByName } from './data/characters/index.js';
 import { poneglyphsAtLocation } from './data/poneglyphs.js';
 import { creaturesAtLocation } from './data/creatures.js';
 import { shipsAtLocation } from './data/ships.js';
+import { ancientWeaponAtLocation, ancientWeaponForCharacter } from './data/ancientWeapons.js';
 
 /** Builds the saga filter chips once, into #sagaChips. */
 export function renderSagaChips(container, onChange){
@@ -48,7 +49,9 @@ export function renderPanel({ panel, panelInner, loc, onLinkClick, onCharacterCl
       const cls = match ? 'charchip clickable' : 'charchip';
       const attr = match ? ` data-charid="${match.id}"` : '';
       const fruitTag = match?.devilFruit ? ` <span title="Devil Fruit: ${match.devilFruit.name}">🍈</span>` : '';
-      return `<span class="${cls}"${attr}><b>${c.name}</b>${fruitTag}: ${c.role}</span>`;
+      const weapon = match && ancientWeaponForCharacter(match.id);
+      const weaponTag = weapon ? ` <span title="Ancient Weapon: ${weapon.name}">⚔️</span>` : '';
+      return `<span class="${cls}"${attr}><b>${c.name}</b>${fruitTag}${weaponTag}: ${c.role}</span>`;
     }).join('');
 
   const shipHtml = shipsAtLocation(loc.id)
@@ -59,6 +62,8 @@ export function renderPanel({ panel, panelInner, loc, onLinkClick, onCharacterCl
 
   const poneglyphHtml = poneglyphsAtLocation(loc.id)
     .map(p => `<li class="${p.color === 'red' ? 'poneglyph-red' : ''}"><b>${p.name}</b>${p.color === 'red' ? ' 🔴' : ''}: ${p.summary}</li>`).join('');
+
+  const weapon = ancientWeaponAtLocation(loc.id);
 
   const linkHtml = (loc.links || [])
     .map(id => LOCATIONS.find(l => l.id === id))
@@ -88,6 +93,7 @@ export function renderPanel({ panel, panelInner, loc, onLinkClick, onCharacterCl
     ${shipHtml ? `<p class="section-label">Notable vessels here</p><ul class="events">${shipHtml}</ul>` : ''}
     ${creatureHtml ? `<p class="section-label">Wildlife</p><ul class="events">${creatureHtml}</ul>` : ''}
     ${poneglyphHtml ? `<p class="section-label">Poneglyphs recorded here</p><ul class="events">${poneglyphHtml}</ul>` : ''}
+    ${weapon ? `<div class="foreshadow-note"><b>Ancient Weapon</b>⚔️ ${weapon.name}: ${weapon.note}</div>` : ''}
     <p class="section-label">Follow the story onward</p>
     <div>${linkHtml}</div>
     ${statusLine ? `<div class="status-note">${statusLine}</div>` : ''}
