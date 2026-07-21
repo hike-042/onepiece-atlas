@@ -1,9 +1,10 @@
 import { SAGAS, LOCATIONS } from './data/locations.js';
-import { findCharacterByName } from './data/characters/index.js';
+import { findCharacterByName, findCharacterById } from './data/characters/index.js';
 import { poneglyphsAtLocation } from './data/poneglyphs.js';
 import { creaturesAtLocation } from './data/creatures.js';
 import { shipsAtLocation } from './data/ships.js';
 import { ancientWeaponAtLocation, ancientWeaponForCharacter } from './data/ancientWeapons.js';
+import { territoryAtLocation } from './data/territories.js';
 
 /** Builds the saga filter chips once, into #sagaChips. */
 export function renderSagaChips(container, onChange){
@@ -65,6 +66,9 @@ export function renderPanel({ panel, panelInner, loc, onLinkClick, onCharacterCl
 
   const weapon = ancientWeaponAtLocation(loc.id);
 
+  const territory = territoryAtLocation(loc.id);
+  const territoryEmperor = territory && findCharacterById(territory.emperorId);
+
   const linkHtml = (loc.links || [])
     .map(id => LOCATIONS.find(l => l.id === id))
     .filter(Boolean)
@@ -94,6 +98,7 @@ export function renderPanel({ panel, panelInner, loc, onLinkClick, onCharacterCl
     ${creatureHtml ? `<p class="section-label">Wildlife</p><ul class="events">${creatureHtml}</ul>` : ''}
     ${poneglyphHtml ? `<p class="section-label">Poneglyphs recorded here</p><ul class="events">${poneglyphHtml}</ul>` : ''}
     ${weapon ? `<div class="foreshadow-note"><b>Ancient Weapon</b>⚔️ ${weapon.name}: ${weapon.note}</div>` : ''}
+    ${territory ? `<div class="foreshadow-note" style="border-left-color:${territory.color}"><b>${territory.status === 'former' ? 'Former Emperor Territory' : 'Emperor Territory'}</b>🏴 ${territoryEmperor ? territoryEmperor.name : territory.emperorId}: ${territory.note}</div>` : ''}
     <p class="section-label">Follow the story onward</p>
     <div>${linkHtml}</div>
     ${statusLine ? `<div class="status-note">${statusLine}</div>` : ''}

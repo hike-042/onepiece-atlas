@@ -16,6 +16,25 @@ const AFFILIATION_COLORS = {
   "Marines": "#33455e",
   "Revolutionary Army": "#8C3B26",
 };
+// Rank tiers read straight off each character's own curated `role` string
+// (see admirals-and-marines.js, minor-cast-stubs-2.js) rather than a
+// separate hand-maintained hierarchy, so an org graph node's size and
+// color reflect real rank instead of a flat leader/member split.
+const RANK_TIERS = [
+  { test: r => /hidden ruler/i.test(r), weight: 12, color: '#1B2A41' },
+  { test: r => /five elders|ruling council/i.test(r), weight: 11, color: '#8C3B26' },
+  { test: r => /^fleet admiral$/i.test(r), weight: 10, color: '#C99A3A' },
+  { test: r => /former fleet admiral/i.test(r), weight: 9, color: '#A67C27' },
+  { test: r => /^admiral$/i.test(r), weight: 8, color: '#6c8aad' },
+  { test: r => /former admiral/i.test(r), weight: 7, color: '#4a5a72' },
+  { test: r => /world noble/i.test(r), weight: 6, color: '#a67c27' },
+  { test: r => /vice admiral/i.test(r), weight: 5, color: '#33455e' },
+  { test: r => /captain/i.test(r), weight: 3, color: '#2c3b52' },
+];
+function rankFor(role){
+  return (role && RANK_TIERS.find(t => t.test(role))) || null;
+}
+
 function colorFor(character){
   return AFFILIATION_COLORS[character.affiliation] || "#A67C27";
 }
@@ -187,11 +206,13 @@ function buildOrganizationGraphData(orgId){
 
   const nodes = memberIds.map(id => {
     const c = findCharacterById(id);
+    const rank = rankFor(c?.role);
     return {
       id,
       label: c ? c.name : id,
-      val: id === org.leader ? 10 : 5,
-      color: id === org.leader ? '#C99A3A' : '#33455e',
+      role: c?.role || null,
+      val: rank ? rank.weight : (id === org.leader ? 10 : 5),
+      color: rank ? rank.color : (id === org.leader ? '#C99A3A' : '#33455e'),
       mark: orgMark,
     };
   });
@@ -209,7 +230,7 @@ export function openOrganizationGraph(container, orgId, onNodeClick, onSettle){
   const { nodes, links } = buildOrganizationGraphData(orgId);
 
   const g = getOrCreateGraph(container, onSettle);
-  g.nodeLabel(n => n.label)
+  g.nodeLabel(n => n.role ? `${n.label}: ${n.role}` : n.label)
    .nodeVal('val')
    .nodeColor('color')
    .nodeThreeObject(makeFlagSprite)

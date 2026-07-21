@@ -31,3 +31,13 @@ export const BOUNTY_HISTORY = [
     ],
   },
 ];
+
+/** Returns { first, current } bounty points for a character with a
+ *  tracked history, or null if none exists (single-snapshot characters
+ *  fall back to their plain `bounty` field elsewhere, same as the
+ *  bounty-chart page already does). */
+export function bountyGrowthFor(characterId){
+  const entry = BOUNTY_HISTORY.find(b => b.characterId === characterId);
+  if (!entry || entry.points.length < 2) return null;
+  return { first: entry.points[0], current: entry.points[entry.points.length - 1] };
+}

@@ -19,6 +19,7 @@ import { GLOSSARY } from './data/glossary.js';
 import { generateQuestion } from './trivia.js';
 import { startAmbientBackdrop } from './scene/ambientBackdrop.js';
 import { PONEGLYPHS, roadPoneglyphProgress } from './data/poneglyphs.js';
+import { bountyGrowthFor } from './data/bountyHistory.js';
 import { CREATURES } from './data/creatures.js';
 import { makePoneglyphIconTexture, makeSeaKingIconTexture } from './scene/texture.js';
 import { ancientWeaponForCharacter } from './data/ancientWeapons.js';
@@ -65,6 +66,7 @@ const charModalClose = document.getElementById('charModalClose');
 const charGraphContainer = document.getElementById('charGraphContainer');
 const charDossier = document.getElementById('charDossier');
 const charDossierAmount = document.getElementById('charDossierAmount');
+const charDossierGrowth = document.getElementById('charDossierGrowth');
 const charModalInner = document.getElementById('charModalInner');
 
 // --- scene, markers, landmarks ---
@@ -234,8 +236,11 @@ function openCharModal(charId){
   if (character.bounty){
     charDossierAmount.textContent = character.bounty;
     charDossier.classList.add('show');
+    const growth = bountyGrowthFor(charId);
+    charDossierGrowth.textContent = growth ? `Started at ${formatBerries(growth.first.bounty)} (${growth.first.saga})` : '';
   } else {
     charDossier.classList.remove('show');
+    charDossierGrowth.textContent = '';
   }
 
   charModalInner.classList.remove('memorial');
@@ -251,6 +256,12 @@ function openCharModal(charId){
 
   charModal.classList.add('open');
   mountGraph(openCharacterGraph, charId, (nextId) => openCharModal(nextId));
+}
+
+function formatBerries(n){
+  if (n >= 1e9) return `${(n / 1e9).toFixed(n % 1e9 === 0 ? 0 : 2)}B berries`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1)}M berries`;
+  return `${n.toLocaleString()} berries`;
 }
 
 const HAKI_ICONS = { "Observation": "👁", "Armament": "🛡", "Conqueror's": "👑" };
@@ -311,6 +322,8 @@ function openCrewModal(crewId){
   charCrossRef.innerHTML = '';
   charFruitEffect.textContent = '';
   charHakiBar.innerHTML = '';
+  charCrewBar.innerHTML = '';
+  charOrgBar.innerHTML = '';
   mountGraph(openCrewGraph, crewId, (nextCharId) => openCharModal(nextCharId));
   if (crew){
     charModalTitle.textContent = crew.name;
@@ -333,6 +346,8 @@ function openOrgModal(orgId){
   charCrossRef.innerHTML = '';
   charFruitEffect.textContent = '';
   charHakiBar.innerHTML = '';
+  charCrewBar.innerHTML = '';
+  charOrgBar.innerHTML = '';
   mountGraph(openOrganizationGraph, orgId, (nextCharId) => openCharModal(nextCharId));
   if (org){
     charModalTitle.textContent = org.name;
@@ -345,9 +360,12 @@ function openOrgModal(orgId){
  *  island or character first. */
 function openGraphOverview(){
   charModal.classList.add('open');
+  openCrewModal('strawhats');
+  // set after openCrewModal, which clears these bars for the normal
+  // single-character-navigation case — the overview wants the full
+  // browsable list instead, so it fills them back in last
   renderCrewButtons(CREWS);
   renderOrgButtons(ORGANIZATIONS);
-  openCrewModal('strawhats');
 }
 charModalClose.addEventListener('click', () => {
   charModal.classList.remove('open');

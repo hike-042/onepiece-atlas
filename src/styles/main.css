@@ -283,6 +283,8 @@ footer{ z-index:3; padding:9px 32px; font-family:'JetBrains Mono', monospace; fo
 .charmodal-dossier.show{ display:flex; }
 .dossier-label{ font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; opacity:0.7; }
 .dossier-amount{ font-family:'Pirata One', cursive; font-size:22px; line-height:1.1; text-align:center; text-shadow:0 1px 0 rgba(255,255,255,0.25); }
+.dossier-growth{ font-family:'JetBrains Mono', monospace; font-size:9.5px; opacity:0.75; text-align:center; max-width:150px; }
+.dossier-growth:empty{ display:none; }
 
 .glossmodal{
   position:fixed; inset:0; z-index:20; background:rgba(5,10,17,0.82);
